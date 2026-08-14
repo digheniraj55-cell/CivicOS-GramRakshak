@@ -68,7 +68,7 @@ CivicOS-GramRakshak/
 
 ## Installation
 
-git clone YOUR_REPOSITORY_URL
+git clone https://github.com/digheniraj55-cell/CivicOS-GramRakshak
 cd CivicOS-GramRakshak
 
 python -m venv venv
