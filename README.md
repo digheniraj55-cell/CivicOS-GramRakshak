@@ -83,16 +83,16 @@ python app.py
 ## Demo
 
 Citizen Portal:
-http://127.0.0.1:5000/
+https://civicos-gramrakshak.onrender.com/
 
 Admin Login:
-http://127.0.0.1:5000/login
+https://civicos-gramrakshak.onrender.com/login
 
 Command Center:
-http://127.0.0.1:5000/admin
+https://civicos-gramrakshak.onrender.com/admin
 
 Worker Operations Center:
-http://127.0.0.1:5000/workers
+https://civicos-gramrakshak.onrender.com/workers
 
 ## Demo Credentials
 
