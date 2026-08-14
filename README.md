@@ -122,17 +122,19 @@ Citizen reports an issue
 
 ## Screenshots
 
+## Screenshots
+
 ### Citizen Portal
-![Citizen Portal](screenshots/home.png)
+![Citizen Portal](home.png)
 
 ### Complaint Reporting
-![Complaint Reporting](screenshots/complaint-reporting.png)
+![Complaint Reporting](complaint-reporting.png)
 
 ### Government Command Center
-![Command Center](screenshots/command-center.png)
+![Government Command Center](command-center.png)
 
 ### Worker Dashboard
-![Worker Dashboard](screenshots/worker-dashboard.png)
+![Worker Dashboard](worker-dashboard.png)
 
 ### Analytics
-![Analytics](screenshots/analytics.png)
+![Analytics](analytics.png)
