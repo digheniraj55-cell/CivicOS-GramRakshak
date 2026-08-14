@@ -10,7 +10,12 @@ DB = os.path.join(BASE_DIR, "civicos.db")
 UPLOAD = os.path.join(BASE_DIR, "static", "uploads")
 os.makedirs(UPLOAD, exist_ok=True)
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=BASE_DIR,
+    static_folder=BASE_DIR,
+    static_url_path=""
+)
 app.secret_key = "civicos-demo-secret"
 app.config["UPLOAD_FOLDER"] = UPLOAD
 app.config["MAX_CONTENT_LENGTH"] = 8 * 1024 * 1024
