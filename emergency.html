@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="sos-page">
+  <form class="sos-panel" method="post">
+    <div class="sos-icon">SOS</div>
+    <span class="section-label">Emergency / SOS</span>
+    <h1>Send urgent civic safety alert</h1>
+    <p>Use only for real emergency cases. CivicOS gives this alert the highest service priority and assigns an emergency worker.</p>
+    <select name="type"><option>Women Safety</option><option>Medical Emergency</option><option>Fire Emergency</option></select>
+    <input name="village" placeholder="Village / town" required>
+    <input name="ward" placeholder="Ward / area" required>
+    <input name="location" placeholder="Exact location" required>
+    <div class="form-grid two"><input name="latitude" id="lat" placeholder="Latitude"><input name="longitude" id="lon" placeholder="Longitude"></div>
+    <div class="form-actions"><button type="button" class="btn ghost" onclick="getLocation()">Use My Location</button><button class="btn danger">Send SOS Alert</button></div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="page-shell">
+  <div class="page-title">
+    <span class="section-label">Citizen Complaint Portal</span>
+    <h1>Report a civic issue</h1>
+    <p>CivicOS will route the complaint to the correct department, assign SLA and keep the citizen updated.</p>
+  </div>
+  <form class="form-card" method="post" enctype="multipart/form-data">
+    <div class="form-grid">
+      <input name="citizen_name" placeholder="Citizen name">
+      <input name="phone" placeholder="Phone number">
+      <input name="title" placeholder="Issue title" required>
+      <select name="category">
+        {% for key,label in category_labels.items() %}<option value="{{key}}">{{label}}</option>{% endfor %}
+      </select>
+      <input name="village" placeholder="Village / town" required>
+      <input name="ward" placeholder="Ward / area" required>
+      <input name="location" placeholder="Exact landmark / street" required>
+      <button type="button" class="btn light" onclick="getLocation()">Use My Location</button>
+      <input name="latitude" id="lat" placeholder="Latitude">
+      <input name="longitude" id="lon" placeholder="Longitude">
+    </div>
+    <textarea name="description" placeholder="Describe the problem clearly. Example: Water pipeline leakage near school causing slippery road." required></textarea>
+    <label class="upload-box">Upload before-photo evidence <input type="file" name="before_photo" accept="image/*"></label>
+    <div class="form-actions"><a class="btn ghost-dark" href="/track">Track Existing</a><button class="btn primary">Submit Complaint</button></div>
+  </form>
+</main>
+{% endblock %}

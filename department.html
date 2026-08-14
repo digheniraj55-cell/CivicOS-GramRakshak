@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="page-shell">
+  <div class="dept-hero">
+    <div><span class="section-label">Department Dashboard</span><h1>{{title}}</h1><p>Department officers can assign workers, update status and upload after-work evidence.</p></div>
+    <a href="/admin" class="btn light">Back to Command Center</a>
+  </div>
+  <section class="stats-grid"><div class="stat-card"><span>Total Cases</span><b>{{stats.total}}</b></div><div class="stat-card yellow"><span>Active</span><b>{{stats.pending}}</b></div><div class="stat-card blue"><span>Resolved</span><b>{{stats.resolved}}</b></div><div class="stat-card red"><span>Escalated</span><b>{{stats.escalated}}</b></div></section>
+  <section class="panel full"><h2>Department work queue</h2><div class="table-scroll"><table class="premium-table"><thead><tr><th>ID</th><th>Issue</th><th>Location</th><th>SLA</th><th>Worker / Update</th></tr></thead><tbody>
+  {% for c in complaints %}<tr class="{% if c.escalated and c.status!='Resolved' %}danger-row{% endif %}"><td><a href="/complaint/{{c.id}}">#{{c.id}}</a></td><td><b>{{c.title}}</b><small>{{c.description[:90]}}</small></td><td>{{c.ward}}<small>{{c.location}}, {{c.village}}</small></td><td><span class="sla-pill {{sla_label(c)|lower|replace(' ','-')}}">{{sla_label(c)}}</span><small>Due {{display_time(c.sla_deadline)}}</small></td><td><form class="inline-form" method="post" action="/admin/update/{{c.id}}" enctype="multipart/form-data"><select name="status">{% for status_name in ['Pending','Assigned','In Progress','Resolved'] %}<option value="{{status_name}}" {% if c.status==status_name %}selected{% endif %}>{{status_name}}</option>{% endfor %}</select><select name="assigned_worker"><option value="">Assign worker</option>{% for w in workers_by_dept.get(dept, []) %}<option value="{{w.id}}" {% if c.assigned_worker==w.id %}selected{% endif %}>{{w.id}} · {{w.name}}</option>{% endfor %}</select><input name="admin_note" value="{{c.admin_note or ''}}" placeholder="Action note"><input type="file" name="after_photo" accept="image/*"><button>Save</button></form></td></tr>{% endfor %}
+  </tbody></table></div></section>
+</main>
+{% endblock %}

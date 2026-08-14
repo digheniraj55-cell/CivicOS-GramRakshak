@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-shell">
+  <aside class="sidebar" aria-label="Command Center navigation">
+    <div class="sidebar-head">
+      <div class="sidebar-logo">C</div>
+      <div><h2>CivicOS</h2><p>Government Command Center</p></div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-nav-section">
+        <span class="sidebar-label">Overview</span>
+        <a class="active" href="#command-top"><span>⌂</span> Command Center</a>
+        <a href="#complaints"><span>≡</span> Complaint Queue</a>
+        <a href="#map"><span>⌖</span> Civic Intelligence Map</a>
+      </div>
+      <div class="sidebar-nav-section">
+        <span class="sidebar-label">Analytics</span>
+        <a href="#wards"><span>▥</span> Ward Analytics</a>
+        <a href="#departments"><span>↗</span> Department Performance</a>
+        <a href="/workers"><span>👷</span> Worker Dashboards</a>
+      </div>
+      <div class="sidebar-nav-section departments-nav">
+        <span class="sidebar-label">Departments</span>
+        {% for key,val in departments.items() %}<a href="/department/{{key}}"><span>•</span> {{val}}</a>{% endfor %}
+      </div>
+    </nav>
+  </aside>
+
+  <main class="admin-main" id="command-top">
+    <div class="admin-hero">
+      <div><span class="section-label">CivicOS Government Command Center</span><h1>Live civic operations dashboard</h1><p>Monitor citizen complaints, smart routing, departments, field workers, SLA escalation and resolution performance from one clear workspace.</p></div>
+      <div class="hero-button-stack"><a class="btn light" href="/workers">Worker Center</a><a class="btn ghost" href="/transparency">Public Board</a></div>
+    </div>
+
+    <section class="stats-grid command-stats">
+      <div class="stat-card"><span>Total Issues</span><b>{{stats.total}}</b><small>All registered civic cases</small></div>
+      <div class="stat-card blue"><span>Resolved</span><b>{{stats.resolved}}</b><small>Completed with closure status</small></div>
+      <div class="stat-card yellow"><span>Active</span><b>{{stats.pending}}</b><small>Pending / assigned / in progress</small></div>
+      <div class="stat-card red"><span>SLA Escalated</span><b>{{stats.escalated}}</b><small>Cases needing attention</small></div>
+    </section>
+
+    {% if stats.escalated %}<div class="escalation-strip">SLA + Automatic Escalation is active: {{stats.escalated}} issue(s) currently need senior attention.</div>{% endif %}
+
+    <section id="map" class="panel full map-panel">
+      <div class="panel-head map-panel-head">
+        <div><span class="section-label">Civic Intelligence Map</span><h2>Location, ward and department hotspots</h2><p class="panel-copy">Filter the live issue map by department or work status. Escalated issues are highlighted in red.</p></div>
+        <div class="map-controls">
+          <label><small>Department</small><select id="mapDepartmentFilter"><option value="all">All Departments</option>{% for k,v in departments.items() %}<option value="{{k}}">{{v}}</option>{% endfor %}</select></label>
+          <label><small>Status</small><select id="mapStatusFilter"><option value="all">All Status</option><option>Pending</option><option>Assigned</option><option>In Progress</option><option>Resolved</option></select></label>
+          <button type="button" class="btn ghost-dark map-reset-btn" onclick="resetMapView()">Reset View</button>
+        </div>
+      </div>
+      <div class="map-meta-row">
+        <div class="map-legend" aria-label="Map legend">
+          <span><i style="background:#0ea5e9"></i>Water</span><span><i style="background:#f59e0b"></i>Electricity</span><span><i style="background:#64748b"></i>Road</span><span><i style="background:#ef4444"></i>Safety</span><span><i style="background:#16a34a"></i>Health</span><span><i style="background:#dc2626"></i>Fire / Escalated</span>
+        </div>
+        <div id="mapMarkerCount" class="map-marker-count">Loading mapped issues…</div>
+      </div>
+      <div class="map-canvas-shell"><div id="adminMap" role="region" aria-label="Civic Intelligence Map"></div><div id="mapStatusOverlay" class="map-status-overlay" hidden></div></div>
+    </section>
+
+    <section id="wards" class="grid-2 analytics-grid">
+      <div class="panel"><span class="section-label">Ward Analytics</span><h2>Ward-wise issue resolution</h2><canvas id="wardChart"></canvas></div>
+      <div class="panel"><span class="section-label">Department Performance</span><h2>Resolution performance</h2><canvas id="deptPerformanceChart"></canvas></div>
+    </section>
+
+    <section id="complaints" class="panel full">
+      <div class="panel-head"><div><span class="section-label">Complaint tracking + worker assignment</span><h2>Priority action queue</h2><p class="panel-copy">Review SLA state, assign the correct department worker and update field progress.</p></div></div>
+      <div class="table-scroll"><table class="premium-table command-table"><thead><tr><th>ID</th><th>Issue</th><th>Ward</th><th>Department</th><th>SLA</th><th>Worker</th><th>Status Update</th></tr></thead><tbody>
+      {% for c in complaints %}
+      <tr class="{% if c.escalated and c.status!='Resolved' %}danger-row{% endif %}">
+        <td><a href="/complaint/{{c.id}}">#{{c.id}}</a></td>
+        <td><b>{{c.title}}</b><small>{{c.description[:80]}}</small></td>
+        <td>{{c.ward}}<small>{{c.village}}</small></td>
+        <td>{{departments.get(c.department,c.department)}}<small>{{c.routing_reason}}</small></td>
+        <td><span class="sla-pill {{sla_label(c)|lower|replace(' ','-')}}">{{sla_label(c)}}</span><small>Due {{display_time(c.sla_deadline)}}</small></td>
+        <td>{{worker_label(c.assigned_worker)}}</td>
+        <td>
+          <form class="inline-form command-update-form" method="post" action="/admin/update/{{c.id}}" enctype="multipart/form-data">
+            <select name="status" aria-label="Complaint status">{% for status_name in ['Pending','Assigned','In Progress','Resolved'] %}<option value="{{status_name}}" {% if c.status==status_name %}selected{% endif %}>{{status_name}}</option>{% endfor %}</select>
+            <select name="assigned_worker" aria-label="Assigned worker"><option value="">Assign worker</option>{% for w in workers_by_dept.get(c.department, []) %}<option value="{{w.id}}" {% if c.assigned_worker==w.id %}selected{% endif %}>{{w.id}} · {{w.name}}</option>{% endfor %}</select>
+            <input name="admin_note" value="{{c.admin_note or ''}}" placeholder="Action note" aria-label="Action note">
+            <input type="file" name="after_photo" accept="image/*" aria-label="After photo proof">
+            <button>Save Update</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody></table></div>
+    </section>
+
+    <section id="departments" class="panel full">
+      <span class="section-label">Department Performance</span><h2>Department workload and resolution rate</h2>
+      <div class="performance-grid">{% for d in dept_perf %}<a class="performance-card" href="/department/{{d.department}}"><b>{{d.label}}</b><span>{{d.resolved}}/{{d.total}} resolved</span><em>{{d.rate}}%</em><small>{{d.escalated}} escalated</small></a>{% endfor %}</div>
+    </section>
+
+    <section id="workers" class="panel full">
+      <div class="panel-head"><div><span class="section-label">Worker Assignment & Worker Dashboard</span><h2>Field worker task load</h2></div><a class="btn light" href="/workers">Open Worker Center</a></div>
+      <div class="worker-grid">{% for w in worker_stats %}<a class="worker-card" href="/worker/{{w.id}}"><b>{{w.id}}</b><span>{{w.name}}</span><small>{{departments.get(w.department,w.department)}}</small><em>{{w.active}} active · {{w.completed}} completed</em></a>{% endfor %}</div>
+    </section>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}<script>loadCommandCenter();</script>{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="page-shell">
+  <div class="page-title">
+    <span class="section-label">Public Transparency Board</span>
+    <h1>Open civic performance</h1>
+    <p>Citizens can see complaint status, civic map, ward analytics and department performance without admin access.</p>
+  </div>
+  <section class="stats-grid"><div class="stat-card"><span>Total Issues</span><b>{{stats.total}}</b></div><div class="stat-card blue"><span>Resolved</span><b>{{stats.resolved}}</b></div><div class="stat-card yellow"><span>Active</span><b>{{stats.pending}}</b></div><div class="stat-card red"><span>Escalated</span><b>{{stats.escalated}}</b></div></section>
+  <section class="panel full map-panel">
+    <div class="panel-head map-panel-head"><div><span class="section-label">Civic Intelligence Map</span><h2>Public issue map</h2><p class="panel-copy">Use the filters to view civic issues by department and current resolution status.</p></div><div class="map-controls"><label><small>Department</small><select id="mapDepartmentFilter"><option value="all">All Departments</option>{% for k,v in departments.items() %}<option value="{{k}}">{{v}}</option>{% endfor %}</select></label><label><small>Status</small><select id="mapStatusFilter"><option value="all">All Status</option><option>Pending</option><option>Assigned</option><option>In Progress</option><option>Resolved</option></select></label><button type="button" class="btn ghost-dark map-reset-btn" onclick="resetMapView()">Reset View</button></div></div>
+    <div class="map-meta-row"><div class="map-legend"><span><i style="background:#0ea5e9"></i>Water</span><span><i style="background:#f59e0b"></i>Electricity</span><span><i style="background:#64748b"></i>Road</span><span><i style="background:#ef4444"></i>Safety</span><span><i style="background:#16a34a"></i>Health</span><span><i style="background:#dc2626"></i>Fire / Escalated</span></div><div id="mapMarkerCount" class="map-marker-count">Loading mapped issues…</div></div>
+    <div class="map-canvas-shell"><div id="adminMap" role="region" aria-label="Civic Intelligence Map"></div><div id="mapStatusOverlay" class="map-status-overlay" hidden></div></div>
+  </section>
+  <section class="grid-2"><div class="panel"><span class="section-label">Ward Analytics</span><h2>Ward-wise resolution</h2><canvas id="wardChart"></canvas></div><div class="panel"><span class="section-label">Department Performance</span><h2>Department resolution</h2><canvas id="deptPerformanceChart"></canvas></div></section>
+  <section class="panel full"><span class="section-label">Complaint Tracking</span><h2>Recent public complaints</h2><div class="table-scroll"><table class="premium-table"><thead><tr><th>ID</th><th>Issue</th><th>Ward</th><th>Department</th><th>Status</th><th>SLA</th></tr></thead><tbody>{% for c in complaints %}<tr><td><a href="/track?cid={{c.id}}">#{{c.id}}</a></td><td>{{c.title}}</td><td>{{c.ward}}</td><td>{{departments.get(c.department,c.department)}}</td><td>{{c.status}}</td><td><span class="sla-pill {{sla_label(c)|lower|replace(' ','-')}}">{{sla_label(c)}}</span></td></tr>{% endfor %}</tbody></table></div></section>
+</main>
+{% endblock %}
+{% block scripts %}<script>loadCommandCenter();</script>{% endblock %}

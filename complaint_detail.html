@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="page-shell">
+{% if comp %}
+  <div class="detail-layout">
+    <section class="detail-card">
+      <span class="section-label">Complaint #{{comp.id}}</span>
+      <h1>{{comp.title}}</h1>
+      <p>{{comp.description}}</p>
+      <div class="badge-row"><span>{{comp.status}}</span><span>{{departments.get(comp.department, comp.department)}}</span><span>{{comp.ward}}</span><span>SLA: {{sla_label(comp)}}</span></div>
+      <div class="info-grid"><div><small>Routing</small><b>{{comp.routing_reason}}</b></div><div><small>Worker</small><b>{{worker_label(comp.assigned_worker)}}</b></div></div>
+      <h3>Before / After Proof</h3>
+      <div class="evidence-grid">
+        <div>{% if comp.before_photo %}<img src="{{url_for('static',filename='uploads/'+comp.before_photo)}}">{% else %}<div class="empty-photo">Before proof pending</div>{% endif %}<b>Before</b></div>
+        <div>{% if comp.after_photo %}<img src="{{url_for('static',filename='uploads/'+comp.after_photo)}}">{% else %}<div class="empty-photo">After proof pending</div>{% endif %}<b>After</b></div>
+      </div>
+      <h3>Feedback</h3>
+      {% for f in feedback %}<div class="mini-note"><b>{{'★'*f.rating}}</b> {{f.message}} <small>— {{f.name}}</small></div>{% else %}<p>No citizen feedback yet.</p>{% endfor %}
+    </section>
+    <aside class="timeline-card"><h3>Complaint Timeline</h3>{% for t in timeline %}<div class="timeline-item"><b>{{t.step}}</b><p>{{t.note}}</p><small>{{display_time(t.created_at)}}</small></div>{% endfor %}</aside>
+  </div>
+{% endif %}
+</main>
+{% endblock %}

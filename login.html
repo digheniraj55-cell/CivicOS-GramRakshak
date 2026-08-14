@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="auth-page civic-bg">
+  <form class="auth-card" method="post">
+    <span class="section-label">Government Command Center</span>
+    <h1>Authority Login</h1>
+    <p>Access department dashboards, worker assignment, SLA alerts and CivicOS analytics.</p>
+    <input name="username" placeholder="Username" required>
+    <input name="password" type="password" placeholder="Password" required>
+    <button class="btn primary">Login</button>
+    <small>Demo login: admin / admin123</small>
+  </form>
+</section>
+{% endblock %}

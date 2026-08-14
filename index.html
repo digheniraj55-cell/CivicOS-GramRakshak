@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero civic-bg">
+  <div class="hero-copy">
+    <div class="kicker">CivicOS MVP · powered by GramRakshak</div>
+    <h1>One operating system for citizen issues, field action and civic accountability.</h1>
+    <p>CivicOS keeps GramRakshak’s citizen reporting foundation and adds smart routing, worker dashboards, SLA escalation, civic maps, ward analytics, department performance and a government command center.</p>
+    <div class="hero-actions">
+      <a class="btn primary" href="/report">Report Complaint</a>
+      <a class="btn danger" href="/sos">Emergency SOS</a>
+      <a class="btn ghost" href="/transparency">View Public Board</a>
+    </div>
+  </div>
+  <div class="command-preview">
+    <div class="preview-head"><span>Government Command Center</span><b>Live</b></div>
+    <div class="preview-grid">
+      <div><b>{{stats.total}}</b><span>Total Issues</span></div>
+      <div><b>{{stats.resolved}}</b><span>Resolved</span></div>
+      <div><b>{{stats.pending}}</b><span>Active</span></div>
+      <div class="danger-stat"><b>{{stats.escalated}}</b><span>Escalated</span></div>
+    </div>
+    <div class="preview-flow"><span>Citizen</span><i></i><span>CivicOS</span><i></i><span>Department</span><i></i><span>Worker</span></div>
+  </div>
+</section>
+
+<section class="container feature-band">
+  <a class="feature-tile" href="/report"><b>01</b><h3>Citizen Complaint Portal</h3><p>Simple reporting with category, location and description.</p></a>
+  <a class="feature-tile" href="/sos"><b>02</b><h3>Emergency / SOS</h3><p>Women safety, medical and fire alerts with critical SLA.</p></a>
+  <a class="feature-tile" href="/track"><b>03</b><h3>Complaint Tracking</h3><p>Timeline, status, SLA state, upvotes and feedback.</p></a>
+  <a class="feature-tile" href="/admin"><b>04</b><h3>Command Center</h3><p>Government view for routing, worker action and analytics.</p></a>
+</section>
+
+<section class="container split">
+  <div class="big-card">
+    <span class="section-label">Existing GramRakshak Foundation</span>
+    <h2>Citizen service layer</h2>
+    <div class="check-grid">
+      <span>Citizen complaint portal</span><span>Emergency / SOS</span><span>Location + photo evidence</span><span>Complaint tracking</span><span>Department dashboards</span><span>Before / after proof</span><span>Feedback / upvotes</span>
+    </div>
+  </div>
+  <div class="big-card dark-card">
+    <span class="section-label">New CivicOS Layer</span>
+    <h2>Operations + intelligence layer</h2>
+    <div class="check-grid">
+      <span>Smart Department Routing</span><span>Worker Assignment & Dashboard</span><span>SLA + Automatic Escalation</span><span>Civic Intelligence Map</span><span>Ward Analytics</span><span>Department Performance</span><span>Government Command Center</span>
+    </div>
+  </div>
+</section>
+
+<section class="container workflow-card">
+  <div><span class="section-label">Demo workflow</span><h2>Citizen → CivicOS → Department → Worker → Citizen</h2></div>
+  <div class="workflow-steps"><span>Report</span><em></em><span>Route</span><em></em><span>Assign</span><em></em><span>Resolve</span><em></em><span>Feedback</span></div>
+</section>
+
+<section class="container recent-feedback">
+  <div class="section-head"><span class="section-label">Feedback / Upvotes</span><h2>Citizen verification closes the loop</h2></div>
+  <div class="feedback-grid">
+    {% for f in feedback %}
+    <div class="feedback-card"><b>{{'★' * f.rating}}</b><p>“{{f.message}}”</p><small>{{f.name}} · Complaint #{{f.complaint_id}}</small></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

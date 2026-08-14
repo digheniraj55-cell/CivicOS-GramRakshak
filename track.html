@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="page-shell">
+  <div class="page-title">
+    <span class="section-label">Complaint Tracking</span>
+    <h1>Track complaint status</h1>
+    <p>Citizens can see department routing, worker assignment, SLA state, before/after proof and feedback.</p>
+  </div>
+  <form class="track-form" method="get"><input name="cid" placeholder="Enter complaint ID" value="{{request.args.get('cid','')}}"><button class="btn primary">Track</button></form>
+  {% if comp %}
+  <div class="detail-layout">
+    <section class="detail-card">
+      <span class="section-label">Complaint #{{comp.id}}</span>
+      <h2>{{comp.title}}</h2>
+      <p>{{comp.description}}</p>
+      <div class="badge-row"><span>{{comp.status}}</span><span>{{departments.get(comp.department, comp.department)}}</span><span>{{comp.ward}}</span><span>SLA: {{sla_label(comp)}}</span></div>
+      <div class="info-grid">
+        <div><small>Service Priority</small><b>{{comp.priority}}/100</b></div>
+        <div><small>Assigned Worker</small><b>{{worker_label(comp.assigned_worker)}}</b></div>
+        <div><small>SLA Deadline</small><b>{{display_time(comp.sla_deadline)}}</b></div>
+        <div><small>Upvotes</small><b>{{comp.upvotes}}</b></div>
+      </div>
+      <form method="post" action="/upvote/{{comp.id}}"><button class="btn light">Community Upvote · {{comp.upvotes}}</button></form>
+      <h3>Before / After Proof</h3>
+      <div class="evidence-grid">
+        <div>{% if comp.before_photo %}<img src="{{url_for('static',filename='uploads/'+comp.before_photo)}}">{% else %}<div class="empty-photo">Before proof pending</div>{% endif %}<b>Before</b></div>
+        <div>{% if comp.after_photo %}<img src="{{url_for('static',filename='uploads/'+comp.after_photo)}}">{% else %}<div class="empty-photo">After proof pending</div>{% endif %}<b>After</b></div>
+      </div>
+      <h3>Citizen Feedback</h3>
+      <form class="feedback-form" method="post" action="/feedback/{{comp.id}}"><input name="name" placeholder="Your name"><select name="rating"><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select><input name="message" placeholder="Write feedback"><button class="btn primary">Submit</button></form>
+      {% for f in feedback %}<div class="mini-note"><b>{{'★'*f.rating}}</b> {{f.message}} <small>— {{f.name}}</small></div>{% endfor %}
+    </section>
+    <aside class="timeline-card"><h3>Complaint Timeline</h3>{% for t in timeline %}<div class="timeline-item"><b>{{t.step}}</b><p>{{t.note}}</p><small>{{display_time(t.created_at)}}</small></div>{% endfor %}</aside>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

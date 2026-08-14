@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="page-shell worker-dashboard-shell">
+  <div class="dept-hero worker-hero">
+    <div>
+      <span class="section-label">Worker Assignment & Worker Dashboard</span>
+      <h1>{{worker.id}} · {{worker.name}}</h1>
+      <p>{{departments.get(worker.department, worker.department)}} field task queue with SLA visibility, work status and before/after completion proof.</p>
+    </div>
+    <div class="hero-button-stack"><a href="/workers" class="btn light">All Workers</a><a href="/admin" class="btn ghost-dark">Command Center</a></div>
+  </div>
+
+  <section class="stats-grid">
+    <div class="stat-card"><span>Total Tasks</span><b>{{stats.total}}</b></div>
+    <div class="stat-card yellow"><span>Active</span><b>{{stats.active}}</b></div>
+    <div class="stat-card blue"><span>Completed</span><b>{{stats.done}}</b></div>
+    <div class="stat-card red"><span>SLA Escalated</span><b>{{stats.escalated}}</b></div>
+  </section>
+
+  <section class="worker-toolbar panel">
+    <div><span class="section-label">My Task Queue</span><h2>Assigned field work</h2><p>Priority first. Escalated and high-priority tasks should be handled before normal cases.</p></div>
+    <div class="task-filter-tabs">
+      <button type="button" class="task-filter active" data-task-filter="all">All {{stats.total}}</button>
+      <button type="button" class="task-filter" data-task-filter="active">Active {{stats.active}}</button>
+      <button type="button" class="task-filter" data-task-filter="priority">High Priority {{stats.high_priority}}</button>
+      <button type="button" class="task-filter" data-task-filter="escalated">Escalated {{stats.escalated}}</button>
+      <button type="button" class="task-filter" data-task-filter="resolved">Resolved {{stats.done}}</button>
+    </div>
+  </section>
+
+  <section class="task-grid worker-task-grid">
+  {% for t in tasks %}
+    <article class="task-card worker-task-card {% if t.escalated and t.status!='Resolved' %}urgent{% endif %}"
+      data-task-status="{{t.status}}" data-task-priority="{{t.priority}}" data-task-escalated="{{1 if t.escalated and t.status!='Resolved' else 0}}">
+      <div class="task-card-head">
+        <div><span class="section-label">Complaint #{{t.id}}</span><h3>{{t.title}}</h3></div>
+        <div class="priority-score {% if t.priority >= 70 %}priority-high{% endif %}"><small>Priority</small><b>{{t.priority}}</b><span>/100</span></div>
+      </div>
+      <p>{{t.description}}</p>
+      <div class="badge-row"><span>{{t.status}}</span><span>{{t.ward}}</span><span class="sla-pill {{sla_label(t)|lower|replace(' ','-')}}">SLA: {{sla_label(t)}}</span></div>
+      <div class="worker-task-info">
+        <div><small>Location</small><b>{{t.location}}, {{t.village}}</b></div>
+        <div><small>SLA Deadline</small><b>{{display_time(t.sla_deadline)}}</b></div>
+      </div>
+      <div class="worker-evidence-strip">
+        <div>{% if t.before_photo %}<img src="{{url_for('static',filename='uploads/'+t.before_photo)}}" alt="Before evidence">{% else %}<div class="worker-empty-photo">Before proof pending</div>{% endif %}<small>Before</small></div>
+        <div>{% if t.after_photo %}<img src="{{url_for('static',filename='uploads/'+t.after_photo)}}" alt="After evidence">{% else %}<div class="worker-empty-photo">After proof pending</div>{% endif %}<small>After</small></div>
+      </div>
+      <form class="worker-form worker-update-form" method="post" action="/worker/update/{{t.id}}" enctype="multipart/form-data">
+        <label><small>Status</small><select name="status">{% for s in ['Assigned','In Progress','Resolved'] %}<option value="{{s}}" {% if t.status==s %}selected{% endif %}>{{s}}</option>{% endfor %}</select></label>
+        <label><small>Work note</small><input name="admin_note" placeholder="What action was taken?" value="{{t.admin_note or ''}}"></label>
+        <label><small>After-photo proof</small><input type="file" name="after_photo" accept="image/*"></label>
+        <button class="btn primary">Save Task Update</button>
+      </form>
+      <a class="task-detail-link" href="/complaint/{{t.id}}">Open complete complaint timeline →</a>
+    </article>
+  {% else %}
+    <div class="empty-task-state panel full"><h2>No tasks assigned</h2><p>This worker currently has no assigned complaints.</p><a class="btn light" href="/admin#complaints">Assign from Command Center</a></div>
+  {% endfor %}
+  </section>
+</main>
+{% endblock %}

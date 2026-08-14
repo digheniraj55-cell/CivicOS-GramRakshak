@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="page-shell worker-center-shell">
+  <div class="dept-hero worker-center-hero">
+    <div>
+      <span class="section-label">Worker Assignment & Worker Dashboard</span>
+      <h1>Field Worker Operations Center</h1>
+      <p>One place to view assigned field teams, active workload, completion progress and SLA escalations.</p>
+    </div>
+    <a href="/admin" class="btn light">Back to Command Center</a>
+  </div>
+
+  <section class="stats-grid worker-center-stats">
+    <div class="stat-card"><span>Field Teams</span><b>{{totals.workers}}</b></div>
+    <div class="stat-card yellow"><span>Active Tasks</span><b>{{totals.active}}</b></div>
+    <div class="stat-card blue"><span>Completed</span><b>{{totals.completed}}</b></div>
+    <div class="stat-card red"><span>SLA Escalated</span><b>{{totals.escalated}}</b></div>
+  </section>
+
+  <section class="panel full worker-center-panel">
+    <div class="panel-head">
+      <div><span class="section-label">Worker Dashboards</span><h2>Department-wise field teams</h2></div>
+      <div class="worker-filter-tabs" role="group" aria-label="Filter workers">
+        <button type="button" class="worker-filter active" data-worker-filter="all">All</button>
+        {% for key,val in departments.items() %}<button type="button" class="worker-filter" data-worker-filter="{{key}}">{{val}}</button>{% endfor %}
+      </div>
+    </div>
+
+    <div class="worker-directory">
+      {% for w in worker_stats %}
+      <article class="worker-directory-card" data-worker-department="{{w.department}}">
+        <div class="worker-card-top">
+          <div class="worker-avatar">{{w.id.split('-')[0]}}</div>
+          <div><span class="section-label">{{departments.get(w.department,w.department)}}</span><h3>{{w.name}}</h3><small>{{w.id}}</small></div>
+        </div>
+        <div class="worker-metric-grid">
+          <div><small>Active</small><b>{{w.active}}</b></div>
+          <div><small>Completed</small><b>{{w.completed}}</b></div>
+          <div><small>High Priority</small><b>{{w.high_priority}}</b></div>
+          <div class="{% if w.escalated %}metric-danger{% endif %}"><small>Escalated</small><b>{{w.escalated}}</b></div>
+        </div>
+        <div class="completion-line"><span style="width:{{w.rate}}%"></span></div>
+        <div class="worker-card-footer"><small>{{w.rate}}% completion across assigned tasks</small><a class="btn primary" href="/worker/{{w.id}}">Open Dashboard</a></div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}
