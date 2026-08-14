@@ -6,7 +6,7 @@
   <title>CivicOS · GramRakshak</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <nav class="topbar">
@@ -32,7 +32,7 @@
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/chart.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'"></script>
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="/app.js"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
