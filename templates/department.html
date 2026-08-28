@@ -1,0 +1,375 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<main class="page-shell">
+
+  <!-- =========================================================
+       DEPARTMENT HEADER
+       ========================================================= -->
+
+  <div class="dept-hero">
+
+    <div>
+
+      <span class="section-label">
+        {{ t("department_dashboard") }}
+      </span>
+
+      <h1>
+        {{ department_label(dept) }}
+      </h1>
+
+      <p>
+        {{ t("department_dashboard_intro") }}
+      </p>
+
+    </div>
+
+
+    <a
+      href="/admin"
+      class="btn light"
+    >
+      {{ t("back_to_command_center") }}
+    </a>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       DEPARTMENT STATS
+       ========================================================= -->
+
+  <section class="stats-grid">
+
+
+    <div class="stat-card">
+
+      <span>
+        {{ t("total_cases") }}
+      </span>
+
+      <b>
+        {{ stats.total }}
+      </b>
+
+    </div>
+
+
+    <div class="stat-card yellow">
+
+      <span>
+        {{ t("active") }}
+      </span>
+
+      <b>
+        {{ stats.pending }}
+      </b>
+
+    </div>
+
+
+    <div class="stat-card blue">
+
+      <span>
+        {{ t("resolved") }}
+      </span>
+
+      <b>
+        {{ stats.resolved }}
+      </b>
+
+    </div>
+
+
+    <div class="stat-card red">
+
+      <span>
+        {{ t("escalated") }}
+      </span>
+
+      <b>
+        {{ stats.escalated }}
+      </b>
+
+    </div>
+
+
+  </section>
+
+
+
+  <!-- =========================================================
+       DEPARTMENT WORK QUEUE
+       ========================================================= -->
+
+  <section class="panel full">
+
+
+    <h2>
+      {{ t("department_work_queue") }}
+    </h2>
+
+
+    <div class="table-scroll">
+
+
+      <table class="premium-table">
+
+
+        <thead>
+
+          <tr>
+
+            <th>
+              ID
+            </th>
+
+            <th>
+              {{ t("issue") }}
+            </th>
+
+            <th>
+              {{ t("location") }}
+            </th>
+
+            <th>
+              SLA
+            </th>
+
+            <th>
+              {{ t("worker_update") }}
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+
+        <tbody>
+
+
+          {% for c in complaints %}
+
+
+          <tr
+            class="
+              {% if c.escalated and c.status != 'Resolved' %}
+              danger-row
+              {% endif %}
+            "
+          >
+
+
+            <!-- ID -->
+
+            <td>
+
+              <a href="/complaint/{{ c.id }}">
+
+                #{{ c.id }}
+
+              </a>
+
+            </td>
+
+
+
+            <!-- ISSUE -->
+
+            <td>
+
+              <b>
+                {{ c.title }}
+              </b>
+
+              <small>
+                {{ c.description[:90] }}
+              </small>
+
+            </td>
+
+
+
+            <!-- LOCATION -->
+
+            <td>
+
+              {{ c.ward }}
+
+              <small>
+
+                {% if c.address %}
+
+                  {{ c.address }}
+
+                {% else %}
+
+                  {{ c.location }}, {{ c.village }}
+
+                {% endif %}
+
+              </small>
+
+            </td>
+
+
+
+            <!-- SLA -->
+
+            <td>
+
+              <span
+                class="sla-pill {{ sla_label(c)|lower|replace(' ','-') }}"
+              >
+
+                {{ sla_label(c) }}
+
+              </span>
+
+              <small>
+
+                {{ t("due") }}
+                {{ display_time(c.sla_deadline) }}
+
+              </small>
+
+            </td>
+
+
+
+            <!-- =================================================
+                 WORKER / UPDATE
+                 ================================================= -->
+
+            <td>
+
+              <form
+                class="inline-form"
+                method="post"
+                action="/admin/update/{{ c.id }}"
+                enctype="multipart/form-data"
+              >
+
+
+                <!-- STATUS -->
+
+                <select name="status">
+
+
+                  {% for status_name in
+                  ['Pending','Assigned','In Progress','Resolved'] %}
+
+
+                  <option
+                    value="{{ status_name }}"
+                    {% if c.status == status_name %}
+                    selected
+                    {% endif %}
+                  >
+
+                    {{ status_label(status_name) }}
+
+                  </option>
+
+
+                  {% endfor %}
+
+
+                </select>
+
+
+
+                <!-- WORKER -->
+
+                <select name="assigned_worker">
+
+
+                  <option value="">
+
+                    {{ t("assign_worker") }}
+
+                  </option>
+
+
+                  {% for w in workers_by_dept.get(dept, []) %}
+
+
+                  <option
+                    value="{{ w.id }}"
+                    {% if c.assigned_worker == w.id %}
+                    selected
+                    {% endif %}
+                  >
+
+                    {{ w.id }} · {{ w.name }}
+
+                  </option>
+
+
+                  {% endfor %}
+
+
+                </select>
+
+
+
+                <!-- ACTION NOTE -->
+
+                <input
+                  name="admin_note"
+                  value="{{ c.admin_note or '' }}"
+                  placeholder="{{ t('action_note') }}"
+                >
+
+
+
+                <!-- AFTER PHOTO -->
+
+                <input
+                  type="file"
+                  name="after_photo"
+                  accept="image/*"
+                  aria-label="{{ t('after_photo_proof') }}"
+                >
+
+
+
+                <!-- SAVE -->
+
+                <button>
+
+                  {{ t("save") }}
+
+                </button>
+
+
+              </form>
+
+            </td>
+
+
+          </tr>
+
+
+          {% endfor %}
+
+
+        </tbody>
+
+
+      </table>
+
+
+    </div>
+
+
+  </section>
+
+
+</main>
+
+{% endblock %}

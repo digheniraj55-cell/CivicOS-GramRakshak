@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<section class="auth-page civic-bg">
+
+  <form
+    class="auth-card"
+    method="post"
+  >
+
+    <span class="section-label">
+      {{ t("government_command_center") }}
+    </span>
+
+
+    <h1>
+      {{ t("authority_login") }}
+    </h1>
+
+
+    <p>
+      {{ t("login_intro") }}
+    </p>
+
+
+    <input
+      name="username"
+      placeholder="{{ t('username') }}"
+      required
+    >
+
+
+    <input
+      name="password"
+      type="password"
+      placeholder="{{ t('password') }}"
+      required
+    >
+
+
+    <button class="btn primary">
+
+      {{ t("login") }}
+
+    </button>
+
+
+    <small>
+
+      {{ t("demo_login") }}:
+      admin / admin123
+
+    </small>
+
+  </form>
+
+</section>
+
+{% endblock %}

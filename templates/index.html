@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}CivicOS · Operating System for Smarter Local Governance{% endblock %}
+{% block content %}
+
+<section class="premium-home-hero">
+  <div class="hero-city-glow" aria-hidden="true"></div>
+  <div class="premium-hero-inner">
+    <div class="premium-hero-copy">
+      <span class="hero-product-name">CivicOS</span>
+      <h1>{{ t('home_hero_title') }}</h1>
+      <p>{{ t('home_hero_desc') }}</p>
+      <div class="premium-hero-actions">
+        <a class="btn primary hero-primary" href="/report">{{ t('report_civic_issue') }} <span>↗</span></a>
+        <a class="btn hero-outline" href="/track">{{ t('track_complaint_status') }} <span>⌕</span></a>
+      </div>
+      <div class="hero-recovery-links">
+        <a href="/find-complaint">{{ t('forgot_complaint_id') }}</a>
+        <span>•</span>
+        <a href="/notifications">{{ t('my_updates') }}</a>
+      </div>
+    </div>
+
+    <div class="hero-live-stats" aria-label="Live CivicOS statistics">
+      <div class="hero-stat-card">
+        <div class="stat-icon">▤</div>
+        <div><small>{{ t('total_issues') }}</small><b>{{ '{:,}'.format(stats.total) }}</b><span>Registered civic cases</span></div>
+      </div>
+      <div class="hero-stat-card">
+        <div class="stat-icon">✓</div>
+        <div><small>Resolved Today</small><b>{{ stats.resolved_today }}</b><span>{{ stats.resolved }} resolved overall</span></div>
+      </div>
+      <div class="hero-stat-card">
+        <div class="stat-icon">⌛</div>
+        <div><small>{{ t('active') }} Complaints</small><b>{{ stats.active }}</b><span>Pending or in field action</span></div>
+      </div>
+      <div class="hero-stat-card">
+        <div class="stat-icon">◇</div>
+        <div><small>SLA Compliance</small><b>{{ stats.sla_compliance }}%</b><span>{{ stats.escalated }} currently escalated</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="home-workflow-section">
+  <div class="home-section-title">
+    <span class="section-label">Citizen → Department → Field Team → Verification</span>
+    <h2>{{ t('how_civicos_works') }}</h2>
+  </div>
+  <div class="home-workflow">
+    <a href="/report" class="workflow-node"><span class="workflow-icon blue">✎</span><b>Report</b><small>Photo, location and contact</small></a>
+    <span class="workflow-arrow">→</span>
+    <div class="workflow-node"><span class="workflow-icon green">▧</span><b>Assign</b><small>Smart routing + one-task teams</small></div>
+    <span class="workflow-arrow">→</span>
+    <div class="workflow-node"><span class="workflow-icon orange">♙</span><b>Resolve</b><small>Field execution with SLA</small></div>
+    <span class="workflow-arrow">→</span>
+    <div class="workflow-node"><span class="workflow-icon blue">✓</span><b>Verify</b><small>Before/after proof + feedback</small></div>
+    <span class="workflow-arrow">→</span>
+    <a href="/transparency" class="workflow-node"><span class="workflow-icon green">▥</span><b>Improve</b><small>Analytics improve services</small></a>
+  </div>
+</section>
+
+<section class="home-intelligence-grid">
+  <div class="category-panel home-white-panel">
+    <div class="home-panel-head">
+      <div><span class="section-label">Citizen Services</span><h2>{{ t('popular_issue_categories') }}</h2></div>
+      <a href="/report">{{ t('view_all_categories') }} →</a>
+    </div>
+    <div class="home-category-grid">
+      <a href="/report" class="home-category-card">
+        <span class="category-symbol road">▰</span><b>Roads & Footpaths</b><small>{{ stats.category_counts.get('road',0) }} complaints</small><em>{{ t('report_now') }} →</em>
+      </a>
+      <a href="/report" class="home-category-card">
+        <span class="category-symbol water">●</span><b>Water Supply</b><small>{{ stats.category_counts.get('water',0) }} complaints</small><em>{{ t('report_now') }} →</em>
+      </a>
+      <a href="/report" class="home-category-card">
+        <span class="category-symbol electricity">ϟ</span><b>Electricity</b><small>{{ stats.category_counts.get('electricity',0) }} complaints</small><em>{{ t('report_now') }} →</em>
+      </a>
+      <a href="/report" class="home-category-card">
+        <span class="category-symbol health">✚</span><b>Health & Sanitation</b><small>{{ stats.category_counts.get('health',0) }} complaints</small><em>{{ t('report_now') }} →</em>
+      </a>
+      <a href="/report" class="home-category-card">
+        <span class="category-symbol safety">◇</span><b>Public Safety</b><small>{{ stats.category_counts.get('safety',0) }} complaints</small><em>{{ t('report_now') }} →</em>
+      </a>
+      <a href="/sos" class="home-category-card emergency-category">
+        <span class="category-symbol fire">SOS</span><b>Emergency Response</b><small>{{ stats.emergency }} emergency cases</small><em>Open SOS →</em>
+      </a>
+    </div>
+  </div>
+
+  <div class="home-map-panel home-white-panel">
+    <div class="home-panel-head compact">
+      <div><span class="section-label">Live</span><h2>{{ t('civic_intelligence_map') }}</h2></div>
+      <span class="live-dot"><i></i> Live</span>
+    </div>
+    <div id="homeCivicMap" class="home-civic-map" aria-label="Live civic issue map"></div>
+    <div class="home-map-foot"><span>Mapped from complaint latitude/longitude</span><a href="{% if session.get('admin') %}/admin#map{% else %}/transparency{% endif %}">Open intelligence view →</a></div>
+  </div>
+</section>
+
+<section class="home-capabilities">
+  <div class="home-section-title">
+    <span class="section-label">GramRakshak + CivicOS</span>
+    <h2>One connected civic operations layer</h2>
+    <p>Citizen reporting stays simple while departments gain controlled assignment, SLA accountability, mapping and performance intelligence.</p>
+  </div>
+  <div class="capability-grid">
+    <div class="capability-card"><span>01</span><h3>Smart Department Routing</h3><p>Complaint text and category route issues to the correct department with a reliable local fallback.</p></div>
+    <div class="capability-card"><span>02</span><h3>Worker Assignment Control</h3><p>Each field team can hold only one unresolved task. New work remains prioritized in a queue until a team is free.</p></div>
+    <div class="capability-card"><span>03</span><h3>SLA + Escalation</h3><p>Every complaint receives a service deadline and overdue work escalates automatically.</p></div>
+    <div class="capability-card"><span>04</span><h3>Citizen Update Loop</h3><p>Complaint recovery, stored updates, browser alerts and optional email keep citizens informed.</p></div>
+  </div>
+</section>
+
+<section class="home-about" id="about">
+  <div>
+    <span class="section-label">{{ t('about_us') }}</span>
+    <h2>Built to connect citizens, departments and field teams—not just collect complaints.</h2>
+  </div>
+  <p>CivicOS extends the GramRakshak citizen-service foundation into a local-government operating layer: reporting, SOS, location proof, tracking, department routing, field-team execution, SLA escalation, civic intelligence maps, ward analytics and public accountability.</p>
+  <div class="about-actions"><a class="btn primary" href="/report">Report an Issue</a><a class="btn light" href="/transparency">View Public Board</a></div>
+</section>
+
+{% if feedback %}
+<section class="home-feedback-section">
+  <div class="home-section-title"><span class="section-label">Citizen Verification</span><h2>Recent feedback</h2></div>
+  <div class="feedback-grid">
+    {% for item in feedback %}
+      <article class="feedback-card"><b>{{ '★' * item.rating }}</b><p>“{{ item.message }}”</p><small>{{ item.name }} · Complaint #{{ item.complaint_id }}</small></article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    if(typeof initHomeCivicMap === 'function') initHomeCivicMap();
+  });
+</script>
+{% endblock %}

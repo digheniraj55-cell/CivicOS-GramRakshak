@@ -1,0 +1,567 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<main class="page-shell">
+
+
+  <!-- =========================================================
+       PAGE HEADER
+       ========================================================= -->
+
+  <div class="page-title">
+
+    <span class="section-label">
+      {{ t("public_transparency_board") }}
+    </span>
+
+    <h1>
+      {{ t("open_civic_performance") }}
+    </h1>
+
+    <p>
+      {{ t("transparency_intro") }}
+    </p>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       PUBLIC STATS
+       ========================================================= -->
+
+  <section class="stats-grid">
+
+
+    <div class="stat-card">
+
+      <span>
+        {{ t("total_issues") }}
+      </span>
+
+      <b>
+        {{ stats.total }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card blue">
+
+      <span>
+        {{ t("resolved") }}
+      </span>
+
+      <b>
+        {{ stats.resolved }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card yellow">
+
+      <span>
+        {{ t("active") }}
+      </span>
+
+      <b>
+        {{ stats.pending }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card red">
+
+      <span>
+        {{ t("escalated") }}
+      </span>
+
+      <b>
+        {{ stats.escalated }}
+      </b>
+
+    </div>
+
+
+  </section>
+
+
+
+  <!-- =========================================================
+       PUBLIC CIVIC MAP
+       ========================================================= -->
+
+  <section class="panel full map-panel">
+
+
+    <div class="panel-head map-panel-head">
+
+
+      <div>
+
+        <span class="section-label">
+          {{ t("civic_intelligence_map") }}
+        </span>
+
+        <h2>
+          {{ t("public_issue_map") }}
+        </h2>
+
+        <p class="panel-copy">
+          {{ t("public_map_intro") }}
+        </p>
+
+      </div>
+
+
+
+      <!-- =====================================================
+           MAP FILTERS
+           ===================================================== -->
+
+      <div class="map-controls">
+
+
+        <!-- DEPARTMENT FILTER -->
+
+        <label>
+
+          <small>
+            {{ t("department") }}
+          </small>
+
+
+          <select id="mapDepartmentFilter">
+
+
+            <option value="all">
+
+              {{ t("all_departments") }}
+
+            </option>
+
+
+            {% for k,v in departments.items() %}
+
+
+            <option value="{{ k }}">
+
+              {{ department_label(k) }}
+
+            </option>
+
+
+            {% endfor %}
+
+
+          </select>
+
+        </label>
+
+
+
+        <!-- STATUS FILTER -->
+
+        <label>
+
+          <small>
+            {{ t("status") }}
+          </small>
+
+
+          <select id="mapStatusFilter">
+
+
+            <option value="all">
+
+              {{ t("all_status") }}
+
+            </option>
+
+
+            <option value="Pending">
+
+              {{ status_label("Pending") }}
+
+            </option>
+
+
+            <option value="Assigned">
+
+              {{ status_label("Assigned") }}
+
+            </option>
+
+
+            <option value="In Progress">
+
+              {{ status_label("In Progress") }}
+
+            </option>
+
+
+            <option value="Resolved">
+
+              {{ status_label("Resolved") }}
+
+            </option>
+
+
+          </select>
+
+        </label>
+
+
+
+        <!-- RESET -->
+
+        <button
+          type="button"
+          class="btn ghost-dark map-reset-btn"
+          onclick="resetMapView()"
+        >
+
+          {{ t("reset_view") }}
+
+        </button>
+
+
+      </div>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         MAP LEGEND + COUNT
+         ========================================================= -->
+
+    <div class="map-meta-row">
+
+
+      <div class="map-legend">
+
+
+        <span>
+
+          <i style="background:#0ea5e9"></i>
+
+          {{ t("category_water") }}
+
+        </span>
+
+
+        <span>
+
+          <i style="background:#f59e0b"></i>
+
+          {{ t("category_electricity") }}
+
+        </span>
+
+
+        <span>
+
+          <i style="background:#64748b"></i>
+
+          {{ t("category_road") }}
+
+        </span>
+
+
+        <span>
+
+          <i style="background:#ef4444"></i>
+
+          {{ t("category_safety") }}
+
+        </span>
+
+
+        <span>
+
+          <i style="background:#16a34a"></i>
+
+          {{ t("category_health") }}
+
+        </span>
+
+
+        <span>
+
+          <i style="background:#dc2626"></i>
+
+          {{ t("fire_escalated") }}
+
+        </span>
+
+
+      </div>
+
+
+
+      <div
+        id="mapMarkerCount"
+        class="map-marker-count"
+      >
+
+        {{ t("loading_mapped_issues") }}
+
+      </div>
+
+
+    </div>
+
+
+
+    <!-- =========================================================
+         MAP CANVAS
+         ========================================================= -->
+
+    <div class="map-canvas-shell">
+
+
+      <div
+        id="adminMap"
+        role="region"
+        aria-label="{{ t('civic_intelligence_map') }}"
+      >
+      </div>
+
+
+      <div
+        id="mapStatusOverlay"
+        class="map-status-overlay"
+        hidden
+      >
+      </div>
+
+
+    </div>
+
+
+  </section>
+
+
+
+  <!-- =========================================================
+       PUBLIC ANALYTICS
+       ========================================================= -->
+
+  <section class="grid-2">
+
+
+    <!-- WARD ANALYTICS -->
+
+    <div class="panel">
+
+      <span class="section-label">
+        {{ t("ward_analytics_label") }}
+      </span>
+
+      <h2>
+        {{ t("ward_wise_resolution") }}
+      </h2>
+
+      <canvas id="wardChart"></canvas>
+
+    </div>
+
+
+
+    <!-- DEPARTMENT PERFORMANCE -->
+
+    <div class="panel">
+
+      <span class="section-label">
+        {{ t("department_performance_label") }}
+      </span>
+
+      <h2>
+        {{ t("department_resolution") }}
+      </h2>
+
+      <canvas id="deptPerformanceChart"></canvas>
+
+    </div>
+
+
+  </section>
+
+
+
+  <!-- =========================================================
+       PUBLIC COMPLAINT TABLE
+       ========================================================= -->
+
+  <section class="panel full">
+
+
+    <span class="section-label">
+      {{ t("complaint_tracking") }}
+    </span>
+
+
+    <h2>
+      {{ t("recent_public_complaints") }}
+    </h2>
+
+
+
+    <div class="table-scroll">
+
+
+      <table class="premium-table">
+
+
+        <thead>
+
+          <tr>
+
+            <th>
+              ID
+            </th>
+
+            <th>
+              {{ t("issue") }}
+            </th>
+
+            <th>
+              {{ t("ward") }}
+            </th>
+
+            <th>
+              {{ t("department") }}
+            </th>
+
+            <th>
+              {{ t("status") }}
+            </th>
+
+            <th>
+              SLA
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+
+        <tbody>
+
+
+          {% for c in complaints %}
+
+
+          <tr>
+
+
+            <!-- ID -->
+
+            <td>
+
+              <a href="/track?cid={{ c.id }}">
+
+                #{{ c.id }}
+
+              </a>
+
+            </td>
+
+
+
+            <!-- ISSUE -->
+
+            <td>
+
+              {{ c.title }}
+
+            </td>
+
+
+
+            <!-- WARD -->
+
+            <td>
+
+              {{ c.ward }}
+
+            </td>
+
+
+
+            <!-- DEPARTMENT -->
+
+            <td>
+
+              {{ department_label(c.department) }}
+
+            </td>
+
+
+
+            <!-- STATUS -->
+
+            <td>
+
+              {{ status_label(c.status) }}
+
+            </td>
+
+
+
+            <!-- SLA -->
+
+            <td>
+
+              <span
+                class="sla-pill {{ sla_label(c)|lower|replace(' ','-') }}"
+              >
+
+                {{ sla_label(c) }}
+
+              </span>
+
+            </td>
+
+
+          </tr>
+
+
+          {% endfor %}
+
+
+        </tbody>
+
+
+      </table>
+
+
+    </div>
+
+
+  </section>
+
+
+</main>
+
+{% endblock %}
+
+
+
+{% block scripts %}
+
+<script>
+
+  loadCommandCenter();
+
+</script>
+
+{% endblock %}

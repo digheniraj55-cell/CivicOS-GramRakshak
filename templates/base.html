@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="{{ current_lang }}" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>{% block title %}CivicOS · Smarter Local Governance{% endblock %}</title>
+  <meta name="description" content="CivicOS unifies citizen complaints, field teams, departments, SLA accountability and civic intelligence.">
+
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <script>
+    (function(){
+      try {
+        const saved = localStorage.getItem('civicos-theme');
+        if(saved) document.documentElement.dataset.theme = saved;
+      } catch(e) {}
+    })();
+  </script>
+</head>
+<body>
+  <nav class="topbar civic-topbar" aria-label="Primary navigation">
+    <a class="brand civic-brand" href="/" aria-label="CivicOS home">
+      <span class="civicos-logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48" role="img">
+          <path d="M24 4 39 12.5v8.2l-6.2-3.5v-1L24 11.3l-8.8 4.9v10.2l8.8 4.9 8.8-4.9v-1l6.2-3.5v8.2L24 38.7 9 30.2V12.5Z" fill="currentColor"/>
+          <path d="M20.4 17.9 24 15.8l3.6 2.1v4.2L24 24.2l-3.6-2.1Z" fill="currentColor" opacity=".72"/>
+          <path d="M20.4 26 24 28.1l3.6-2.1v4.2L24 32.3l-3.6-2.1Z" fill="currentColor" opacity=".42"/>
+        </svg>
+      </span>
+      <span class="brand-copy">
+        <b>CivicOS</b>
+        <small>{{ t('home_subtitle') }}</small>
+      </span>
+    </a>
+
+    <button class="mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="primaryNav" onclick="toggleMobileMenu(this)">
+      <span></span><span></span><span></span>
+      <span class="sr-only">Menu</span>
+    </button>
+
+    <div class="navlinks civic-navlinks" id="primaryNav">
+      <a href="/" data-nav="home">{{ t('home') }}</a>
+      <a href="/report" data-nav="report">{{ t('report_civic_issue') if t('report_civic_issue') != 'report_civic_issue' else t('report') }}</a>
+      <a href="/track" data-nav="track">{{ t('track_complaint_status') if t('track_complaint_status') != 'track_complaint_status' else t('track') }}</a>
+
+      <details class="nav-dropdown">
+        <summary>{{ t('dashboards') }} <span aria-hidden="true">⌄</span></summary>
+        <div class="nav-dropdown-menu">
+          <a href="/transparency">{{ t('public_board') }}</a>
+          <a href="/workers">{{ t('worker_center') }}</a>
+          {% if session.get('admin') %}
+            <a href="/admin">{{ t('command_center') }}</a>
+          {% else %}
+            <a href="/login">{{ t('command_center') }}</a>
+          {% endif %}
+        </div>
+      </details>
+
+      <a class="sos-link" href="/sos">SOS</a>
+      <a href="/#about">{{ t('about_us') }}</a>
+      <a href="/notifications" class="nav-update-link">{{ t('my_updates') }}</a>
+
+      <div class="nav-actions">
+        <button class="icon-button theme-toggle" type="button" onclick="toggleCivicTheme()" aria-label="Toggle appearance" title="Toggle appearance">
+          <span class="theme-moon" aria-hidden="true">◔</span>
+        </button>
+
+        <details class="language-menu">
+          <summary>{{ 'MR' if current_lang == 'mr' else 'EN' }} <span aria-hidden="true">⌄</span></summary>
+          <div class="language-menu-popover">
+            <a class="{% if current_lang == 'en' %}active{% endif %}" href="{{ url_for('change_language', lang='en') }}">English</a>
+            <a class="{% if current_lang == 'mr' %}active{% endif %}" href="{{ url_for('change_language', lang='mr') }}">मराठी</a>
+          </div>
+        </details>
+
+        {% if session.get('admin') %}
+          <a class="nav-login secondary" href="/admin">{{ t('command_center') }}</a>
+          <a class="nav-logout" href="/logout">{{ t('logout') }}</a>
+        {% else %}
+          <a class="nav-login" href="/login">{{ t('login') }}</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-wrap" aria-live="polite">
+        {% for cat, msg in messages %}
+          <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+  <footer class="footer civic-footer">
+    <div>
+      <b>CivicOS</b>
+      <span>GramRakshak-powered civic operations platform</span>
+    </div>
+    <div class="footer-links">
+      <a href="/report">{{ t('report') }}</a>
+      <a href="/track">{{ t('track') }}</a>
+      <a href="/find-complaint">{{ t('find_complaint') }}</a>
+      <a href="/transparency">{{ t('transparency') }}</a>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

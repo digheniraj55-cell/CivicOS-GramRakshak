@@ -1,0 +1,42 @@
+{% extends 'admin_base.html' %}
+{% block title %}Command Center · CivicOS{% endblock %}
+{% block admin_content %}
+<section class="admin-metric-grid five">
+  <article class="admin-metric"><i class="blue">▤</i><div><small>Total Complaints</small><b>{{ stats.total }}</b><span>All registered cases</span></div></article>
+  <article class="admin-metric"><i class="orange">⌛</i><div><small>Active Complaints</small><b>{{ stats.active }}</b><span>{{ busy_workers }} field teams busy</span></div></article>
+  <article class="admin-metric"><i class="green">✓</i><div><small>Resolved Today</small><b>{{ stats.resolved_today }}</b><span>{{ stats.resolved }} resolved overall</span></div></article>
+  <article class="admin-metric"><i class="red">♨</i><div><small>SLA Breached</small><b>{{ stats.escalated }}</b><span>Need authority attention</span></div></article>
+  <article class="admin-metric"><i class="purple">◴</i><div><small>Avg. Resolution Time</small><b>{{ avg_resolution_days }}d</b><span>Across resolved cases</span></div></article>
+</section>
+
+<section class="admin-command-grid">
+  <article class="admin-card admin-map-card">
+    <header class="admin-card-head"><div><h2>Civic Intelligence Map</h2><p>Live complaint positions from verified coordinates.</p></div><div class="map-head-actions"><span class="live-chip">● Live</span><select id="mapDepartmentFilter" onchange="applyMapFilters()"><option value="all">All Departments</option>{% for key,val in departments.items() %}<option value="{{ key }}">{{ val }}</option>{% endfor %}</select><select id="mapStatusFilter" onchange="applyMapFilters()"><option value="all">All Statuses</option>{% for status in status_order %}<option value="{{ status }}">{{ status }}</option>{% endfor %}</select></div></header>
+    <div class="admin-map-wrap"><div id="mapStatusOverlay" class="map-status-overlay" hidden></div><div id="adminMap"></div></div>
+    <div class="map-card-foot"><div class="map-legend"><span><i class="dot red"></i>Critical</span><span><i class="dot orange"></i>High</span><span><i class="dot blue"></i>Normal</span><span><i class="dot green"></i>Resolved</span></div><span id="mapMarkerCount">Loading mapped issues…</span></div>
+  </article>
+
+  <aside class="admin-stack">
+    <article class="admin-card compact"><header class="admin-card-head"><h2>Critical Alerts</h2><a href="{{ url_for('admin_sla') }}">View all</a></header><div class="alert-list">{% for row in critical[:4] %}<a href="{{ url_for('complaint_detail', cid=row.id) }}"><i class="{{ 'danger' if row.escalated or row.emergency else 'warning' }}">!</i><span><b>{{ row.title }}</b><small>#{{ row.id }} · {{ row.ward }} · {{ row.status }}</small></span><em>{{ 'SLA breached' if row.escalated else ('Emergency' if row.emergency else 'High priority') }}</em></a>{% else %}<div class="empty-state small">No critical alerts right now.</div>{% endfor %}</div></article>
+    <article class="admin-card compact"><header class="admin-card-head"><h2>Live Complaint Queue</h2><a href="{{ url_for('admin_complaints') }}">View all</a></header><div class="queue-list">{% for row in complaints if row.status != 'Resolved' %}{% if loop.index <= 6 %}<a href="{{ url_for('complaint_detail', cid=row.id) }}"><span>#C-{{ row.id }}</span><b>{{ row.title }}</b><small>{{ row.ward }}</small><em class="status-mini">{{ row.status }}</em></a>{% endif %}{% else %}<div class="empty-state small">No active complaints.</div>{% endfor %}</div></article>
+  </aside>
+</section>
+
+<section class="admin-lower-grid">
+  <article class="admin-card"><header class="admin-card-head"><div><h2>Complaints Trend</h2><p>Recent daily complaint intake.</p></div><a href="{{ url_for('admin_analytics') }}">Open Analytics</a></header><div class="chart-box"><canvas id="complaintTrendChart"></canvas></div></article>
+  <article class="admin-card"><header class="admin-card-head"><div><h2>Department Performance</h2><p>Resolved share by department.</p></div><a href="{{ url_for('admin_departments') }}">View all</a></header><div class="dept-progress-list">{% for dept in dept_perf %}<a href="{{ url_for('department', dept=dept.key) }}"><span>{{ dept.label }}</span><div><i style="width:{{ dept.rate }}%"></i></div><b>{{ dept.rate }}%</b></a>{% endfor %}</div></article>
+  <article class="admin-card"><header class="admin-card-head"><div><h2>Top Wards by Complaints</h2><p>Highest complaint volume areas.</p></div><a href="{{ url_for('admin_analytics') }}">View all</a></header><div class="ward-rank-list">{% for ward in ward_data[:5] %}<div><i>{{ loop.index }}</i><span><b>{{ ward.ward }}</b><small>{{ ward.resolved }} resolved</small></span><strong>{{ ward.total }}</strong></div>{% else %}<div class="empty-state small">Ward analytics appear after complaints are reported.</div>{% endfor %}</div></article>
+</section>
+
+<section class="admin-card admin-recent-card"><header class="admin-card-head"><div><h2>Recent Resolutions</h2><p>Verified complaint closures with before/after evidence when available.</p></div><a href="{{ url_for('admin_complaints', status='Resolved') }}">View all</a></header><div class="recent-resolution-grid">{% for row in resolved_recent[:4] %}<a href="{{ url_for('complaint_detail', cid=row.id) }}"><div class="resolution-image-pair">{% if row.before_photo %}<img src="{{ url_for('static', filename='uploads/' + row.before_photo) }}" alt="Before">{% else %}<span>Before</span>{% endif %}{% if row.after_photo %}<img src="{{ url_for('static', filename='uploads/' + row.after_photo) }}" alt="After">{% else %}<span>After</span>{% endif %}</div><b>{{ row.title }}</b><small>{{ row.ward }} · Resolved</small></a>{% else %}<div class="empty-state">No resolved complaints yet.</div>{% endfor %}</div></section>
+{% endblock %}
+{% block admin_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  if(typeof loadCommandCenter==='function') loadCommandCenter();
+  const labels={{ complaint_trend|map(attribute='label')|list|tojson }};
+  const values={{ complaint_trend|map(attribute='count')|list|tojson }};
+  if(typeof drawChart==='function') drawChart('complaintTrendChart','line',labels,values,'Complaints');
+});
+</script>
+{% endblock %}

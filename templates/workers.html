@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<main class="page-shell worker-center-shell">
+
+  <!-- =========================================================
+       HEADER
+       ========================================================= -->
+
+  <div class="dept-hero worker-center-hero">
+
+    <div>
+
+      <span class="section-label">
+        {{ t("worker_assignment_dashboard") }}
+      </span>
+
+      <h1>
+        {{ t("field_worker_operations_center") }}
+      </h1>
+
+      <p>
+        {{ t("worker_center_intro") }}
+      </p>
+      <div class="worker-policy-banner">◉ {{ t("one_task_policy") }} · {{ totals.available }} {{ t("available")|lower }} now</div>
+
+    </div>
+
+
+    <a
+      href="{{ '/admin' if session.get('admin') else '/' }}"
+      class="btn light"
+    >
+      {{ t("back_to_command_center") if session.get('admin') else t("home") }}
+    </a>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       WORKER STATS
+       ========================================================= -->
+
+  <section class="stats-grid worker-center-stats">
+
+
+    <div class="stat-card">
+
+      <span>
+        {{ t("field_teams") }}
+      </span>
+
+      <b>
+        {{ totals.workers }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card yellow">
+
+      <span>
+        {{ t("active_tasks") }}
+      </span>
+
+      <b>
+        {{ totals.active }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card blue">
+
+      <span>
+        {{ t("completed") }}
+      </span>
+
+      <b>
+        {{ totals.completed }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card red">
+
+      <span>
+        {{ t("sla_escalated_title") }}
+      </span>
+
+      <b>
+        {{ totals.escalated }}
+      </b>
+
+    </div>
+
+
+  </section>
+
+
+
+  <!-- =========================================================
+       WORKER DIRECTORY
+       ========================================================= -->
+
+  <section class="panel full worker-center-panel">
+
+
+    <div class="panel-head">
+
+
+      <div>
+
+        <span class="section-label">
+          {{ t("worker_dashboards") }}
+        </span>
+
+        <h2>
+          {{ t("department_wise_field_teams") }}
+        </h2>
+
+      </div>
+
+
+
+      <!-- =====================================================
+           WORKER FILTERS
+           ===================================================== -->
+
+      <div
+        class="worker-filter-tabs"
+        role="group"
+        aria-label="{{ t('filter_workers') }}"
+      >
+
+
+        <button
+          type="button"
+          class="worker-filter active"
+          data-worker-filter="all"
+        >
+
+          {{ t("all") }}
+
+        </button>
+
+
+        {% for key,val in departments.items() %}
+
+        <button
+          type="button"
+          class="worker-filter"
+          data-worker-filter="{{ key }}"
+        >
+
+          {{ department_label(key) }}
+
+        </button>
+
+        {% endfor %}
+
+
+      </div>
+
+
+    </div>
+
+
+
+    <!-- =========================================================
+         WORKER CARDS
+         ========================================================= -->
+
+    <div class="worker-directory">
+
+
+      {% for w in worker_stats %}
+
+
+      <article
+        class="worker-directory-card"
+        data-worker-department="{{ w.department }}"
+      >
+
+
+        <!-- =====================================================
+             WORKER HEADER
+             ===================================================== -->
+
+        <div class="worker-card-top">
+
+
+          <div class="worker-avatar">
+
+            {{ w.id.split('-')[0] }}
+
+          </div>
+
+
+          <div>
+
+
+            <span class="section-label">
+
+              {{ department_label(w.department) }}
+
+            </span>
+
+
+            <h3>
+
+              {{ w.name }}
+
+            </h3>
+
+
+            <small>
+
+              {{ w.id }}
+
+            </small>
+
+
+          </div>
+
+
+        </div>
+
+        <div class="worker-availability-row">
+          {% if w.busy %}
+            <span class="worker-state-badge busy">{{ t("busy") }} · Complaint #{{ w.current_task_id }}</span>
+            <small>{{ w.current_task_status }} · {{ w.current_task_title }}</small>
+          {% else %}
+            <span class="worker-state-badge available">{{ t("available") }}</span>
+            <small>Ready for the next queued {{ department_label(w.department) }} task.</small>
+          {% endif %}
+        </div>
+
+
+        <!-- =====================================================
+             WORKER METRICS
+             ===================================================== -->
+
+        <div class="worker-metric-grid">
+
+
+          <div>
+
+            <small>
+              {{ t("active") }}
+            </small>
+
+            <b>
+              {{ w.active }}
+            </b>
+
+          </div>
+
+
+
+          <div>
+
+            <small>
+              {{ t("completed") }}
+            </small>
+
+            <b>
+              {{ w.completed }}
+            </b>
+
+          </div>
+
+
+
+          <div>
+
+            <small>
+              {{ t("high_priority") }}
+            </small>
+
+            <b>
+              {{ w.high_priority }}
+            </b>
+
+          </div>
+
+
+
+          <div
+            class="
+              {% if w.escalated %}
+              metric-danger
+              {% endif %}
+            "
+          >
+
+            <small>
+              {{ t("escalated") }}
+            </small>
+
+            <b>
+              {{ w.escalated }}
+            </b>
+
+          </div>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+             COMPLETION BAR
+             ===================================================== -->
+
+        <div class="completion-line">
+
+          <span style="width:{{ w.rate }}%"></span>
+
+        </div>
+
+
+
+        <!-- =====================================================
+             CARD FOOTER
+             ===================================================== -->
+
+        <div class="worker-card-footer">
+
+
+          <small>
+
+            {{ w.rate }}%
+
+            {{ t("completion_across_assigned_tasks") }}
+
+          </small>
+
+
+          <a
+            class="btn primary"
+            href="/worker/{{ w.id }}"
+          >
+
+            {{ t("open_dashboard") }}
+
+          </a>
+
+
+        </div>
+
+
+      </article>
+
+
+      {% endfor %}
+
+
+    </div>
+
+
+  </section>
+
+
+</main>
+
+{% endblock %}

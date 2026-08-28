@@ -1,0 +1,545 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<main class="page-shell">
+
+{% if comp %}
+
+  <div class="detail-layout">
+
+
+    <!-- =========================================================
+         COMPLAINT DETAILS
+         ========================================================= -->
+
+    <section class="detail-card">
+
+
+      <span class="section-label">
+
+        {{ t("complaint") }}
+        #{{ comp.id }}
+
+      </span>
+
+
+      <h1>
+        {{ comp.title }}
+      </h1>
+
+
+      <p>
+        {{ comp.description }}
+      </p>
+
+
+
+      <!-- =======================================================
+           STATUS BADGES
+           ======================================================= -->
+
+      <div class="badge-row">
+
+
+        <!-- Status -->
+
+        <span>
+          {{ status_label(comp.status) }}
+        </span>
+
+
+        <!-- Department -->
+
+        <span>
+          {{ department_label(comp.department) }}
+        </span>
+
+
+        <!-- Ward -->
+
+        <span>
+          {{ comp.ward }}
+        </span>
+
+
+        <!-- SLA -->
+
+        <span>
+
+          SLA:
+          {{ sla_label(comp) }}
+
+        </span>
+
+
+      </div>
+
+
+
+      <!-- =======================================================
+           COMPLAINT INFORMATION
+           ======================================================= -->
+
+      <div class="info-grid">
+
+
+        <!-- Routing -->
+
+        <div>
+
+          <small>
+            {{ t("routing") }}
+          </small>
+
+          <b>
+            {{ comp.routing_reason }}
+          </b>
+
+        </div>
+
+
+
+        <!-- Worker -->
+
+        <div>
+
+          <small>
+            {{ t("worker") }}
+          </small>
+
+          <b>
+            {{ worker_label(comp.assigned_worker) }}
+          </b>
+
+        </div>
+
+
+      </div>
+
+
+
+      <!-- =======================================================
+           LOCATION
+           ======================================================= -->
+
+      <h3 style="margin-top:28px;">
+
+        📍 {{ t("complaint_location") }}
+
+      </h3>
+
+
+      <div
+        style="
+          margin-top:12px;
+          padding:18px;
+          border:1px solid #dce3ec;
+          border-radius:12px;
+          background:#f8fafc;
+        "
+      >
+
+
+        <!-- Confirmed Address -->
+
+        <div style="margin-bottom:14px;">
+
+          <small
+            style="
+              display:block;
+              margin-bottom:5px;
+              opacity:.7;
+              font-weight:600;
+            "
+          >
+
+            {{ t("confirmed_address") }}
+
+          </small>
+
+
+          <b
+            style="
+              display:block;
+              line-height:1.5;
+            "
+          >
+
+            {% if comp.address %}
+
+              {{ comp.address }}
+
+            {% else %}
+
+              {{ comp.location }}
+
+            {% endif %}
+
+          </b>
+
+        </div>
+
+
+
+        <!-- Area Information -->
+
+        <div
+          style="
+            display:flex;
+            gap:12px;
+            flex-wrap:wrap;
+          "
+        >
+
+
+          <div
+            style="
+              flex:1;
+              min-width:140px;
+              padding:10px 12px;
+              background:white;
+              border:1px solid #e4e8ee;
+              border-radius:8px;
+            "
+          >
+
+            <small>
+              {{ t("village_town") }}
+            </small>
+
+            <br>
+
+            <b>
+              {{ comp.village }}
+            </b>
+
+          </div>
+
+
+
+          <div
+            style="
+              flex:1;
+              min-width:140px;
+              padding:10px 12px;
+              background:white;
+              border:1px solid #e4e8ee;
+              border-radius:8px;
+            "
+          >
+
+            <small>
+              {{ t("ward_area") }}
+            </small>
+
+            <br>
+
+            <b>
+              {{ comp.ward }}
+            </b>
+
+          </div>
+
+
+        </div>
+
+
+
+        <!-- Coordinates -->
+
+        {% if comp.latitude and comp.longitude %}
+
+        <div
+          style="
+            display:flex;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-top:12px;
+          "
+        >
+
+
+          <div
+            style="
+              flex:1;
+              min-width:140px;
+              padding:10px 12px;
+              background:white;
+              border:1px solid #e4e8ee;
+              border-radius:8px;
+            "
+          >
+
+            <small>
+              {{ t("latitude") }}
+            </small>
+
+            <br>
+
+            <b>
+              {{ "%.6f"|format(comp.latitude) }}
+            </b>
+
+          </div>
+
+
+
+          <div
+            style="
+              flex:1;
+              min-width:140px;
+              padding:10px 12px;
+              background:white;
+              border:1px solid #e4e8ee;
+              border-radius:8px;
+            "
+          >
+
+            <small>
+              {{ t("longitude") }}
+            </small>
+
+            <br>
+
+            <b>
+              {{ "%.6f"|format(comp.longitude) }}
+            </b>
+
+          </div>
+
+
+        </div>
+
+        {% endif %}
+
+
+      </div>
+
+
+
+      <!-- =======================================================
+           BEFORE / AFTER PROOF
+           ======================================================= -->
+
+      <h3>
+        {{ t("before_after_proof") }}
+      </h3>
+
+
+      <div class="evidence-grid">
+
+
+        <!-- BEFORE -->
+
+        <div>
+
+
+          {% if comp.before_photo %}
+
+
+          <img
+            src="{{ url_for(
+              'static',
+              filename='uploads/' + comp.before_photo
+            ) }}"
+            alt="{{ t('before_evidence') }}"
+          >
+
+
+          {% else %}
+
+
+          <div class="empty-photo">
+
+            {{ t("before_proof_pending") }}
+
+          </div>
+
+
+          {% endif %}
+
+
+          <b>
+            {{ t("before") }}
+          </b>
+
+
+        </div>
+
+
+
+        <!-- AFTER -->
+
+        <div>
+
+
+          {% if comp.after_photo %}
+
+
+          <img
+            src="{{ url_for(
+              'static',
+              filename='uploads/' + comp.after_photo
+            ) }}"
+            alt="{{ t('after_evidence') }}"
+          >
+
+
+          {% else %}
+
+
+          <div class="empty-photo">
+
+            {{ t("after_proof_pending") }}
+
+          </div>
+
+
+          {% endif %}
+
+
+          <b>
+            {{ t("after") }}
+          </b>
+
+
+        </div>
+
+
+      </div>
+
+
+
+      <!-- =======================================================
+           FEEDBACK
+           ======================================================= -->
+
+      <h3>
+        {{ t("feedback") }}
+      </h3>
+
+
+      {% for f in feedback %}
+
+
+      <div class="mini-note">
+
+        <b>
+          {{ '★' * f.rating }}
+        </b>
+
+        {{ f.message }}
+
+        <small>
+          — {{ f.name }}
+        </small>
+
+      </div>
+
+
+      {% else %}
+
+
+      <p>
+        {{ t("no_citizen_feedback") }}
+      </p>
+
+
+      {% endfor %}
+
+
+    </section>
+
+
+
+    <!-- =========================================================
+         COMPLAINT TIMELINE
+         ========================================================= -->
+
+    <aside class="timeline-card">
+
+      {% if session.get('admin') %}
+      <section class="complaint-admin-control">
+        <div class="complaint-admin-control-head">
+          <div><span>Authority Controls</span><h3>Update complaint</h3></div>
+          <a href="{{ url_for('admin_complaints') }}">Back to queue</a>
+        </div>
+        <form method="post" action="{{ url_for('update_complaint', cid=comp.id) }}" enctype="multipart/form-data" class="complaint-admin-form">
+          <label>Status
+            <select name="status">
+              {% for status in status_order %}<option value="{{ status }}" {% if comp.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>Field team
+            <select name="assigned_worker">
+              <option value="">Queue / unassigned</option>
+              {% for worker in workers_by_dept.get(comp.department, []) %}
+                {% set state = worker_states.get(worker.id) if worker_states else none %}
+                <option value="{{ worker.id }}" {% if comp.assigned_worker == worker.id %}selected{% endif %} {% if state and state.busy and comp.assigned_worker != worker.id %}disabled{% endif %}>
+                  {{ worker.name }}{% if state and state.busy and comp.assigned_worker != worker.id %} — Busy on #{{ state.current_task_id }}{% elif state and not state.busy %} — Available{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Authority note
+            <textarea name="admin_note" rows="3" placeholder="Add a concise status or assignment note">{{ comp.admin_note or '' }}</textarea>
+          </label>
+          <label>After-work proof
+            <input type="file" name="after_photo" accept="image/*">
+          </label>
+          <button type="submit" class="btn primary">Save update</button>
+        </form>
+        <p class="one-task-policy-note">One active task per field team is enforced. Busy teams cannot be assigned another unresolved complaint.</p>
+      </section>
+      {% endif %}
+
+      <h3>
+        {{ t("complaint_timeline") }}
+      </h3>
+
+
+
+      {% for item in timeline %}
+
+
+      <div class="timeline-item">
+
+
+        <b>
+
+          {{ timeline_step_label(item.step) }}
+
+        </b>
+
+
+        <p>
+
+          {{ item.note }}
+
+        </p>
+
+
+        <small>
+
+          {{ display_time(item.created_at) }}
+
+        </small>
+
+
+      </div>
+
+
+      {% endfor %}
+
+
+    </aside>
+
+
+  </div>
+
+{% endif %}
+
+</main>
+
+{% endblock %}

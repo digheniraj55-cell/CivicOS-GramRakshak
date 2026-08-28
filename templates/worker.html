@@ -1,0 +1,686 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<main class="page-shell worker-dashboard-shell">
+
+
+  <!-- =========================================================
+       WORKER HERO
+       ========================================================= -->
+
+  <div class="dept-hero worker-hero">
+
+    <div>
+
+      <span class="section-label">
+        {{ t("worker_assignment_dashboard") }}
+      </span>
+
+
+      <h1>
+        {{ worker.id }} · {{ worker.name }}
+      </h1>
+
+
+      <p>
+        {{ department_label(worker.department) }}
+        {{ t("worker_task_queue_intro") }}
+      </p>
+      {% if current_task %}
+      <div class="worker-policy-banner busy">● {{ t("busy") }} · {{ t("current_assignment") }} #{{ current_task.id }} · {{ current_task.title }}</div>
+      {% else %}
+      <div class="worker-policy-banner available">● {{ t("available") }} · {{ t("one_task_policy") }} · ready for automatic queue assignment</div>
+      {% endif %}
+
+    </div>
+
+
+
+    <div class="hero-button-stack">
+
+
+      <a
+        href="/workers"
+        class="btn light"
+      >
+        {{ t("all_workers") }}
+      </a>
+
+
+      <a
+        href="/admin"
+        class="btn ghost-dark"
+      >
+        {{ t("command_center") }}
+      </a>
+
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =========================================================
+       WORKER STATS
+       ========================================================= -->
+
+  <section class="stats-grid">
+
+
+    <div class="stat-card">
+
+      <span>
+        {{ t("total_tasks") }}
+      </span>
+
+      <b>
+        {{ stats.total }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card yellow">
+
+      <span>
+        {{ t("active") }}
+      </span>
+
+      <b>
+        {{ stats.active }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card blue">
+
+      <span>
+        {{ t("completed") }}
+      </span>
+
+      <b>
+        {{ stats.done }}
+      </b>
+
+    </div>
+
+
+
+    <div class="stat-card red">
+
+      <span>
+        {{ t("sla_escalated_title") }}
+      </span>
+
+      <b>
+        {{ stats.escalated }}
+      </b>
+
+    </div>
+
+
+  </section>
+
+
+
+  <!-- =========================================================
+       TASK FILTER TOOLBAR
+       ========================================================= -->
+
+  <section class="worker-toolbar panel">
+
+
+    <div>
+
+      <span class="section-label">
+        {{ t("my_task_queue") }}
+      </span>
+
+
+      <h2>
+        {{ t("assigned_field_work") }}
+      </h2>
+
+
+      <p>
+        {{ t("worker_priority_instruction") }}
+        Active work is intentionally capped at one complaint. Resolved items remain below as field history.
+      </p>
+
+    </div>
+
+
+
+    <div class="task-filter-tabs">
+
+
+      <!-- ALL -->
+
+      <button
+        type="button"
+        class="task-filter active"
+        data-task-filter="all"
+      >
+
+        {{ t("all") }}
+        {{ stats.total }}
+
+      </button>
+
+
+
+      <!-- ACTIVE -->
+
+      <button
+        type="button"
+        class="task-filter"
+        data-task-filter="active"
+      >
+
+        {{ t("active") }}
+        {{ stats.active }}
+
+      </button>
+
+
+
+      <!-- HIGH PRIORITY -->
+
+      <button
+        type="button"
+        class="task-filter"
+        data-task-filter="priority"
+      >
+
+        {{ t("high_priority") }}
+        {{ stats.high_priority }}
+
+      </button>
+
+
+
+      <!-- ESCALATED -->
+
+      <button
+        type="button"
+        class="task-filter"
+        data-task-filter="escalated"
+      >
+
+        {{ t("escalated") }}
+        {{ stats.escalated }}
+
+      </button>
+
+
+
+      <!-- RESOLVED -->
+
+      <button
+        type="button"
+        class="task-filter"
+        data-task-filter="resolved"
+      >
+
+        {{ t("resolved") }}
+        {{ stats.done }}
+
+      </button>
+
+
+    </div>
+
+  </section>
+
+
+
+  <!-- =========================================================
+       TASK GRID
+       ========================================================= -->
+
+  <section class="task-grid worker-task-grid">
+
+
+  {% for task in tasks %}
+
+
+    <article
+      class="
+        task-card
+        worker-task-card
+        {% if task.escalated and task.status != 'Resolved' %}
+        urgent
+        {% endif %}
+      "
+      data-task-status="{{ task.status }}"
+      data-task-priority="{{ task.priority }}"
+      data-task-escalated="
+        {{ 1 if task.escalated and task.status != 'Resolved' else 0 }}
+      "
+    >
+
+
+      <!-- =====================================================
+           TASK HEADER
+           ===================================================== -->
+
+      <div class="task-card-head">
+
+
+        <div>
+
+          <span class="section-label">
+
+            {{ t("complaint") }}
+            #{{ task.id }}
+
+          </span>
+
+
+          <h3>
+            {{ task.title }}
+          </h3>
+
+        </div>
+
+
+
+        <div
+          class="
+            priority-score
+            {% if task.priority >= 70 %}
+            priority-high
+            {% endif %}
+          "
+        >
+
+
+          <small>
+            {{ t("priority") }}
+          </small>
+
+
+          <b>
+            {{ task.priority }}
+          </b>
+
+
+          <span>
+            /100
+          </span>
+
+
+        </div>
+
+
+      </div>
+
+
+
+      <!-- =====================================================
+           DESCRIPTION
+           ===================================================== -->
+
+      <p>
+        {{ task.description }}
+      </p>
+
+
+
+      <!-- =====================================================
+           STATUS BADGES
+           ===================================================== -->
+
+      <div class="badge-row">
+
+
+        <span>
+          {{ status_label(task.status) }}
+        </span>
+
+
+        <span>
+          {{ task.ward }}
+        </span>
+
+
+        <span
+          class="
+            sla-pill
+            {{ sla_label(task)|lower|replace(' ','-') }}
+          "
+        >
+
+          SLA:
+          {{ sla_label(task) }}
+
+        </span>
+
+
+      </div>
+
+
+
+      <!-- =====================================================
+           TASK INFORMATION
+           ===================================================== -->
+
+      <div class="worker-task-info">
+
+
+        <!-- LOCATION -->
+
+        <div>
+
+          <small>
+            {{ t("location") }}
+          </small>
+
+
+          <b>
+
+            {% if task.address %}
+
+              {{ task.address }}
+
+            {% else %}
+
+              {{ task.location }},
+              {{ task.village }}
+
+            {% endif %}
+
+          </b>
+
+        </div>
+
+
+
+        <!-- SLA DEADLINE -->
+
+        <div>
+
+          <small>
+            {{ t("sla_deadline") }}
+          </small>
+
+
+          <b>
+            {{ display_time(task.sla_deadline) }}
+          </b>
+
+        </div>
+
+
+      </div>
+
+
+
+      <!-- =====================================================
+           BEFORE / AFTER EVIDENCE
+           ===================================================== -->
+
+      <div class="worker-evidence-strip">
+
+
+        <!-- BEFORE -->
+
+        <div>
+
+
+          {% if task.before_photo %}
+
+
+          <img
+            src="{{ url_for(
+              'static',
+              filename='uploads/' + task.before_photo
+            ) }}"
+            alt="{{ t('before_evidence') }}"
+          >
+
+
+          {% else %}
+
+
+          <div class="worker-empty-photo">
+
+            {{ t("before_proof_pending") }}
+
+          </div>
+
+
+          {% endif %}
+
+
+          <small>
+            {{ t("before") }}
+          </small>
+
+
+        </div>
+
+
+
+        <!-- AFTER -->
+
+        <div>
+
+
+          {% if task.after_photo %}
+
+
+          <img
+            src="{{ url_for(
+              'static',
+              filename='uploads/' + task.after_photo
+            ) }}"
+            alt="{{ t('after_evidence') }}"
+          >
+
+
+          {% else %}
+
+
+          <div class="worker-empty-photo">
+
+            {{ t("after_proof_pending") }}
+
+          </div>
+
+
+          {% endif %}
+
+
+          <small>
+            {{ t("after") }}
+          </small>
+
+
+        </div>
+
+
+      </div>
+
+
+
+      <!-- =====================================================
+           WORKER UPDATE FORM
+           ===================================================== -->
+
+      {% if task.status != 'Resolved' %}
+      <form
+        class="worker-form worker-update-form"
+        method="post"
+        action="/worker/update/{{ task.id }}"
+        enctype="multipart/form-data"
+      >
+        <input type="hidden" name="worker_id" value="{{ worker.id }}">
+
+
+        <!-- STATUS -->
+
+        <label>
+
+
+          <small>
+            {{ t("status") }}
+          </small>
+
+
+          <select name="status">
+
+
+            {% for status_name in
+            ['Assigned','In Progress','Resolved'] %}
+
+
+            <option
+              value="{{ status_name }}"
+              {% if task.status == status_name %}
+              selected
+              {% endif %}
+            >
+
+              {{ status_label(status_name) }}
+
+            </option>
+
+
+            {% endfor %}
+
+
+          </select>
+
+
+        </label>
+
+
+
+        <!-- WORK NOTE -->
+
+        <label>
+
+
+          <small>
+            {{ t("work_note") }}
+          </small>
+
+
+          <input
+            name="admin_note"
+            placeholder="{{ t('action_taken_placeholder') }}"
+            value="{{ task.admin_note or '' }}"
+          >
+
+
+        </label>
+
+
+
+        <!-- AFTER PHOTO -->
+
+        <label>
+
+
+          <small>
+            {{ t("after_photo_proof") }}
+          </small>
+
+
+          <input
+            type="file"
+            name="after_photo"
+            accept="image/*"
+          >
+
+
+        </label>
+
+
+
+        <!-- SAVE -->
+
+        <button class="btn primary">
+
+          {{ t("save_task_update") }}
+
+        </button>
+
+
+      </form>
+      {% else %}
+      <div class="resolved-history-note">
+        <strong>Resolved history</strong>
+        <span>This completed task is read-only. The team is available for the next queued complaint.</span>
+      </div>
+      {% endif %}
+
+
+
+      <!-- =====================================================
+           FULL COMPLAINT
+           ===================================================== -->
+
+      <a
+        class="task-detail-link"
+        href="/complaint/{{ task.id }}"
+      >
+
+        {{ t("open_complete_complaint_timeline") }}
+        →
+
+      </a>
+
+
+    </article>
+
+
+
+  {% else %}
+
+
+    <!-- =======================================================
+         EMPTY TASK STATE
+         ======================================================= -->
+
+    <div class="empty-task-state panel full">
+
+
+      <h2>
+        {{ t("no_tasks_assigned") }}
+      </h2>
+
+
+      <p>
+        {{ t("worker_no_assigned_complaints") }}
+      </p>
+
+
+      <a
+        class="btn light"
+        href="/admin#complaints"
+      >
+
+        {{ t("assign_from_command_center") }}
+
+      </a>
+
+
+    </div>
+
+
+  {% endfor %}
+
+
+  </section>
+
+
+</main>
+
+{% endblock %}

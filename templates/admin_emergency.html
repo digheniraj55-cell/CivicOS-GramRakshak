@@ -1,0 +1,7 @@
+{% extends 'admin_base.html' %}
+{% block title %}Emergency SOS · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="admin-page-heading emergency-heading"><div><span>Emergency Operations</span><h1>Emergency SOS</h1><p>Emergency cases are isolated into a dedicated page for faster authority response.</p></div><a class="admin-danger-btn" href="{{ url_for('sos') }}" target="_blank">Open Citizen SOS ↗</a></div>
+<section class="admin-metric-grid three"><article class="admin-metric"><i class="red">☎</i><div><small>Total SOS</small><b>{{ emergency_rows|length }}</b><span>emergency reports</span></div></article><article class="admin-metric"><i class="orange">⌛</i><div><small>Active SOS</small><b>{{ emergency_rows|selectattr('status','ne','Resolved')|list|length }}</b><span>require response</span></div></article><article class="admin-metric"><i class="green">✓</i><div><small>Resolved SOS</small><b>{{ emergency_rows|selectattr('status','equalto','Resolved')|list|length }}</b><span>closed emergencies</span></div></article></section>
+<section class="admin-card"><header class="admin-card-head"><h2>Emergency Queue</h2></header><div class="case-list emergency-list">{% for row in emergency_rows %}<a href="{{ url_for('complaint_detail', cid=row.id) }}"><i class="danger">☎</i><span><b>#{{ row.id }} · {{ row.title }}</b><small>{{ row.address or row.location }} · {{ row.phone or 'No phone' }}</small></span><em>{{ row.status }}</em></a>{% else %}<div class="empty-state">No emergency reports yet.</div>{% endfor %}</div></section>
+{% endblock %}

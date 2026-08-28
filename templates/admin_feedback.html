@@ -1,0 +1,7 @@
+{% extends 'admin_base.html' %}
+{% block title %}Citizen Feedback · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="admin-page-heading"><div><span>Citizen Verification</span><h1>Citizen Feedback</h1><p>Review ratings and closure feedback after citizens track completed complaints.</p></div></div>
+<section class="admin-metric-grid three"><article class="admin-metric"><i class="purple">★</i><div><small>Average Rating</small><b>{{ stats.feedback }}/5</b><span>citizen feedback</span></div></article><article class="admin-metric"><i class="blue">♡</i><div><small>Responses</small><b>{{ feedback_rows|length }}</b><span>submitted reviews</span></div></article><article class="admin-metric"><i class="green">✓</i><div><small>Resolved Cases</small><b>{{ stats.resolved }}</b><span>eligible for feedback</span></div></article></section>
+<section class="admin-card"><header class="admin-card-head"><h2>Recent Feedback</h2></header><div class="feedback-admin-list">{% for item in feedback_rows %}<article><div class="stars">{{ '★' * item.rating }}{{ '☆' * (5-item.rating) }}</div><p>“{{ item.message }}”</p><footer><span><b>{{ item.name }}</b><small>Complaint #{{ item.complaint_id }}{% if item.complaint_title %} · {{ item.complaint_title }}{% endif %}</small></span><time>{{ display_time(item.created_at) }}</time></footer></article>{% else %}<div class="empty-state">Citizen feedback will appear here after resolved complaints receive ratings.</div>{% endfor %}</div></section>
+{% endblock %}
