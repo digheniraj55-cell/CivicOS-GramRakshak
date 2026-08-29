@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}Track Complaint · CivicOS{% endblock %}
+{% block content %}
+<main class="page-shell track-page-shell">
+  <div class="page-title track-page-title">
+    <span class="section-label">{{ t('complaint_tracking') }}</span>
+    <h1>{{ t('track_complaint_status') }}</h1>
+    <p>{{ t('track_intro') }}</p>
+  </div>
+
+  <section class="track-search-panel">
+    <form class="track-form premium-track-form" method="get">
+      <input name="cid" inputmode="numeric" autocomplete="off" placeholder="{{ t('enter_complaint_id') }}" value="{{ request.args.get('cid','') }}" aria-label="Complaint ID">
+      <button class="btn primary">{{ t('track') }}</button>
+    </form>
+    <div class="track-help-links">
+      <a href="/find-complaint">⌕ {{ t('forgot_complaint_id') }}</a>
+      <a href="/notifications">◉ {{ t('my_updates') }}</a>
+    </div>
+  </section>
+
+  {% if comp %}
+  <div class="track-live-strip" id="complaintLiveStrip" data-complaint-id="{{ comp.id }}" data-updated-at="{{ comp.updated_at }}" data-notification-id="{{ notifications[0].id if notifications else 0 }}">
+    <div><span class="live-pulse"></span><b>Live complaint updates</b><small id="liveComplaintText">Last updated {{ display_time(comp.updated_at) }}</small></div>
+    <button type="button" class="btn light compact-btn" id="enableComplaintAlerts" onclick="enableComplaintAlerts()">◉ {{ t('enable_alerts') }}</button>
+  </div>
+
+  <div class="detail-layout premium-track-layout">
+    <section class="detail-card complaint-overview-card">
+      <div class="complaint-card-head">
+        <div>
+          <span class="section-label">{{ t('complaint') }} #{{ comp.id }}</span>
+          <h2>{{ comp.title }}</h2>
+          <p>{{ comp.description }}</p>
+        </div>
+        <div class="priority-score {% if comp.priority >= 70 %}priority-high{% endif %}">
+          <small>{{ t('priority') }}</small><b>{{ comp.priority }}</b><span>/100</span>
+        </div>
+      </div>
+
+      <div class="badge-row track-badges">
+        <span>{{ status_label(comp.status) }}</span>
+        <span>{{ department_label(comp.department) }}</span>
+        <span>{{ comp.ward }}</span>
+        <span class="sla-pill {{ sla_label(comp)|lower|replace(' ','-') }}">SLA: {{ sla_label(comp) }}</span>
+        {% if comp.escalated and comp.status != 'Resolved' %}<span class="danger-badge">Escalated</span>{% endif %}
+      </div>
+
+      <div class="info-grid track-info-grid">
+        <div><small>{{ t('assigned_worker') }}</small><b>{{ worker_label(comp.assigned_worker) }}</b></div>
+        <div><small>{{ t('sla_deadline') }}</small><b>{{ display_time(comp.sla_deadline) }}</b></div>
+        <div><small>Required Skill</small><b>{{ comp.required_skill or 'General maintenance' }}</b></div>
+        <div><small>{{ t('upvotes') }}</small><b>{{ comp.upvotes }}</b></div>
+      </div>
+
+      <div class="track-location-card">
+        <div class="track-section-heading"><span>⌖</span><div><small>{{ t('complaint_location') }}</small><b>{{ comp.address or comp.location }}</b></div></div>
+        <div class="track-location-meta"><span>{{ comp.ward }}</span><span>{{ comp.village }}</span>{% if comp.latitude is not none and comp.longitude is not none %}<span>{{ '%.5f'|format(comp.latitude) }}, {{ '%.5f'|format(comp.longitude) }}</span>{% endif %}</div>
+      </div>
+
+      {% if comp.routing_reason %}
+      <div class="routing-explain-card"><small>Why CivicOS routed it here</small><p>{{ comp.routing_reason }}</p></div>
+      {% endif %}
+
+      {% if comp.admin_note %}
+      <div class="authority-note"><small>Latest authority / field note</small><p>{{ comp.admin_note }}</p></div>
+      {% endif %}
+
+      <div class="evidence-grid track-evidence-grid">
+        <div class="evidence-card">
+          <small>{{ t('before_photo') if t('before_photo') != 'before_photo' else 'Before evidence' }}</small>
+          {% if comp.before_photo %}<img src="{{ url_for('static', filename='uploads/' + comp.before_photo) }}" alt="Before complaint evidence" loading="lazy">{% else %}<div class="evidence-empty">No photo supplied</div>{% endif %}
+        </div>
+        <div class="evidence-card">
+          <small>{{ t('after_photo_proof') }}</small>
+          {% if comp.after_photo %}<img src="{{ url_for('static', filename='uploads/' + comp.after_photo) }}" alt="After work evidence" loading="lazy">{% else %}<div class="evidence-empty">Completion proof pending</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="track-actions-row">
+        <form method="post" action="/upvote/{{ comp.id }}"><button class="btn light" type="submit">▲ {{ t('upvotes') }} · {{ comp.upvotes }}</button></form>
+        <a class="btn ghost-dark" href="/complaint/{{ comp.id }}">Open full case →</a>
+      </div>
+    </section>
+
+    <aside class="timeline-card track-side-card">
+      <div class="track-side-section">
+        <span class="section-label">{{ t('my_updates') }}</span>
+        <h3>Citizen notification feed</h3>
+        <div class="notification-feed" id="trackNotificationFeed">
+          {% for n in notifications %}
+          <article class="notification-item {{ n.kind }}" data-notification-id="{{ n.id }}">
+            <span></span><div><b>{{ n.title }}</b><p>{{ n.message }}</p><small>{{ display_time(n.created_at) }}</small></div>
+          </article>
+          {% else %}
+          <p class="muted-empty">{{ t('no_notifications') }}</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="track-side-section timeline-section">
+        <span class="section-label">Case Timeline</span>
+        <h3>Every action is recorded</h3>
+        <div class="timeline premium-timeline">
+          {% for item in timeline %}
+          <div class="timeline-item"><i></i><div><b>{{ timeline_step_label(item.step) }}</b><p>{{ item.note }}</p><small>{{ display_time(item.created_at) }}</small></div></div>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  {% if comp.status == 'Resolved' %}
+  <section class="panel feedback-panel">
+    <div><span class="section-label">Citizen Verification</span><h2>Rate the resolution</h2><p>Your feedback becomes part of the public accountability loop.</p></div>
+    <form method="post" action="/feedback/{{ comp.id }}" class="feedback-form">
+      <input name="name" placeholder="Your name">
+      <select name="rating"><option value="5">5 · Excellent</option><option value="4">4 · Good</option><option value="3">3 · Okay</option><option value="2">2 · Poor</option><option value="1">1 · Very poor</option></select>
+      <input name="message" placeholder="What was your experience?">
+      <button class="btn primary">Submit Feedback</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% elif request.args.get('cid') %}
+  <section class="empty-state-card"><span>⌕</span><h2>{{ t('complaint_not_found') }}</h2><p>Check the number, or recover your complaint using the name and phone number you used when reporting.</p><a class="btn primary" href="/find-complaint">{{ t('find_complaint') }}</a></section>
+  {% else %}
+  <section class="track-start-grid">
+    <a href="/find-complaint" class="track-start-card"><span>⌕</span><h3>{{ t('forgot_complaint_id') }}</h3><p>{{ t('recovery_help') }}</p></a>
+    <a href="/notifications" class="track-start-card"><span>◉</span><h3>{{ t('notification_center') }}</h3><p>{{ t('notification_help') }}</p></a>
+    <a href="/report" class="track-start-card"><span>＋</span><h3>{{ t('report_civic_issue') }}</h3><p>Create a new complaint with photo and location evidence.</p></a>
+  </section>
+  {% endif %}
+</main>
+{% endblock %}
+{% block scripts %}
+{% if comp %}
+<script>document.addEventListener('DOMContentLoaded', function(){ if(typeof setupComplaintLiveUpdates === 'function') setupComplaintLiveUpdates(); });</script>
+{% endif %}
+{% endblock %}

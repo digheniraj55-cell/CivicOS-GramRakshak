@@ -1,0 +1,7 @@
+{% extends 'admin_base.html' %}
+{% block title %}Reports · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="admin-page-heading"><div><span>Operational Reporting</span><h1>Reports</h1><p>Download complaint records and review report-ready operational summaries.</p></div><a class="admin-primary-btn" href="{{ url_for('admin_export') }}">Download Complaint CSV</a></div>
+<section class="report-option-grid"><a href="{{ url_for('admin_export') }}"><i>↧</i><h2>Complaint Register</h2><p>Full complaint-level CSV with status, SLA, assignment and citizen fields.</p><span>Download CSV →</span></a><a href="{{ url_for('admin_analytics') }}"><i>⌁</i><h2>Analytics Summary</h2><p>Review ward demand and department resolution performance before presentation.</p><span>Open Analytics →</span></a><a href="{{ url_for('admin_transparency') }}"><i>◇</i><h2>Transparency Snapshot</h2><p>Public accountability metrics and recent complaint outcomes.</p><span>Open Snapshot →</span></a></section>
+<section class="admin-card"><header class="admin-card-head"><h2>Current Reporting Snapshot</h2></header><div class="report-summary-grid"><div><span>Total Complaints</span><b>{{ stats.total }}</b></div><div><span>Resolved</span><b>{{ stats.resolved }}</b></div><div><span>Active</span><b>{{ stats.active }}</b></div><div><span>SLA Breached</span><b>{{ stats.escalated }}</b></div><div><span>SLA Compliance</span><b>{{ stats.sla_compliance }}%</b></div><div><span>Average Resolution</span><b>{{ avg_resolution_days }}d</b></div></div></section>
+{% endblock %}

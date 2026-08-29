@@ -1,0 +1,8 @@
+{% extends 'admin_base.html' %}
+{% block title %}Departments · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="admin-page-heading"><div><span>Department Operations</span><h1>Departments</h1><p>Compare workload, resolution rate and escalation pressure by service department.</p></div></div>
+<section class="department-admin-grid">{% for dept in dept_perf %}<a class="department-admin-card" href="{{ url_for('department', dept=dept.key) }}"><div class="department-icon">{{ loop.index|string }}</div><div><span>{{ dept.label }}</span><h2>{{ dept.total }}</h2><p>{{ dept.resolved }} resolved · {{ dept.escalated }} escalated</p><div class="progress-track"><i style="width:{{ dept.rate }}%"></i></div><small>{{ dept.rate }}% resolution rate</small></div><b>→</b></a>{% endfor %}</section>
+<section class="admin-card"><header class="admin-card-head"><h2>Department Performance Comparison</h2></header><div class="chart-box tall"><canvas id="departmentPageChart"></canvas></div></section>
+{% endblock %}
+{% block admin_scripts %}<script>document.addEventListener('DOMContentLoaded',()=>drawChart('departmentPageChart','bar',{{ dept_perf|map(attribute='label')|list|tojson }},{{ dept_perf|map(attribute='rate')|list|tojson }},'Resolution %'));</script>{% endblock %}

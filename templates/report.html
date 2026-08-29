@@ -1,0 +1,1477 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<main class="page-shell">
+
+  <!-- =========================================================
+       PAGE HEADER
+       ========================================================= -->
+
+  <div class="page-title">
+
+    <span class="section-label">
+      {{ t("citizen_complaint_portal") }}
+    </span>
+
+    <h1>
+      {{ t("report_civic_issue") }}
+    </h1>
+
+    <p>
+      {{ t("report_intro") }}
+    </p>
+
+  </div>
+
+
+  <!-- =========================================================
+       COMPLAINT FORM
+       ========================================================= -->
+
+  <form
+    class="form-card"
+    method="post"
+    enctype="multipart/form-data"
+    id="complaintForm"
+  >
+
+    <div class="form-grid">
+
+
+      <!-- Citizen Name -->
+
+      <input
+        name="citizen_name"
+        placeholder="{{ t('citizen_name') }}"
+        autocomplete="name"
+        required
+      >
+
+
+      <!-- Phone Number -->
+
+      <input
+        name="phone"
+        placeholder="{{ t('phone_number') }}"
+        inputmode="tel"
+        autocomplete="tel"
+        required
+      >
+
+      <!-- Optional Email for configured email notifications -->
+      <input
+        type="email"
+        name="email"
+        placeholder="{{ t('email_optional') }}"
+        autocomplete="email"
+      >
+
+
+      <!-- Issue Title -->
+
+      <input
+        name="title"
+        placeholder="{{ t('issue_title') }}"
+        required
+      >
+
+
+      <!-- Category -->
+
+      <select name="category">
+
+        {% for key,label in category_labels.items() %}
+
+        <option value="{{ key }}">
+          {{ category_label(key) }}
+        </option>
+
+        {% endfor %}
+
+      </select>
+
+
+      <!-- Village / Town -->
+
+      <input
+        name="village"
+        placeholder="{{ t('village_town') }}"
+        required
+      >
+
+
+      <!-- Ward / Area -->
+
+      <input
+        name="ward"
+        placeholder="{{ t('ward_area') }}"
+        required
+      >
+
+
+      <!-- =====================================================
+           EXACT LOCATION
+           ===================================================== -->
+
+      <input
+        name="location"
+        id="reportLocation"
+        placeholder="{{ t('exact_landmark') }}"
+        required
+      >
+
+
+      <!-- Use Current Location -->
+
+      <button
+        type="button"
+        class="btn light"
+        id="reportLocationBtn"
+        onclick="getReportLocation()"
+      >
+        📍 {{ t("use_my_location") }}
+      </button>
+
+      <button
+        type="button"
+        class="btn ghost-dark"
+        id="reportMapPickerBtn"
+        onclick="openReportLocationPicker()"
+      >
+        🗺 Choose on Map / Search Address
+      </button>
+
+
+      <!-- Hidden Latitude -->
+
+      <input
+        type="hidden"
+        name="latitude"
+        id="reportLat"
+      >
+
+
+      <!-- Hidden Longitude -->
+
+      <input
+        type="hidden"
+        name="longitude"
+        id="reportLon"
+      >
+
+
+      <!-- Hidden Confirmation Status -->
+
+      <input
+        type="hidden"
+        name="location_confirmed"
+        id="reportLocationConfirmed"
+        value="false"
+      >
+
+    </div>
+
+
+
+    <!-- =========================================================
+         LOCATION STATUS
+         ========================================================= -->
+
+    <div
+      id="reportLocationStatus"
+      style="
+        display:none;
+        margin-top:18px;
+        padding:14px 16px;
+        border-radius:10px;
+        background:#eef6ff;
+        border:1px solid #cfe2ff;
+        font-weight:600;
+      "
+    >
+    </div>
+
+    <section class="location-fallback-card" id="reportLocationFallback" hidden>
+      <header>
+        <div>
+          <h4>Choose the exact complaint location</h4>
+          <p>Search an address or tap directly on the map. This fallback works even when browser GPS is blocked on a local HTTP address.</p>
+        </div>
+        <button type="button" class="btn light" style="min-height:36px;padding:8px 12px" onclick="closeReportLocationPicker()">Close</button>
+      </header>
+      <div class="location-tools-row">
+        <input id="reportLocationSearch" type="search" placeholder="Search locality, road, landmark, village…" autocomplete="street-address">
+        <button type="button" class="btn primary" onclick="searchReportLocation()">Search Location</button>
+      </div>
+      <div id="reportLocationSearchResults" class="location-search-results"></div>
+      <div id="reportLocationMap" aria-label="Select complaint location on map"></div>
+      <div class="secure-location-note" id="reportSecureContextNote" hidden>
+        Browser GPS normally requires HTTPS when CivicOS is opened using a LAN IP such as <b>10.x.x.x:5000</b>. The map/search picker above is provided so location still works during local-network demos.
+      </div>
+    </section>
+
+
+
+    <!-- =========================================================
+         LOCATION CONFIRMATION CARD
+         ========================================================= -->
+
+    <div
+      id="reportAddressBox"
+      style="
+        display:none;
+        margin-top:18px;
+        padding:22px;
+        border:1px solid #d8dee8;
+        border-radius:14px;
+        background:#f8fafc;
+      "
+    >
+
+
+      <div style="margin-bottom:16px;">
+
+
+        <span
+          style="
+            display:inline-block;
+            font-size:13px;
+            font-weight:700;
+            padding:6px 10px;
+            border-radius:20px;
+            background:#e8f2ff;
+            margin-bottom:10px;
+          "
+        >
+          📍 {{ t("gps_location_detected") }}
+        </span>
+
+
+        <h3
+          style="
+            margin:0 0 8px 0;
+            font-size:20px;
+          "
+        >
+          {{ t("confirm_complaint_location") }}
+        </h3>
+
+
+        <p
+          style="
+            margin:0;
+            opacity:.78;
+          "
+        >
+          {{ t("gps_address_explanation") }}
+        </p>
+
+      </div>
+
+
+
+      <!-- =====================================================
+           READABLE ADDRESS
+           ===================================================== -->
+
+      <label
+        for="reportDetectedAddress"
+        style="
+          display:block;
+          font-weight:700;
+          margin-bottom:7px;
+        "
+      >
+        {{ t("detected_address") }}
+      </label>
+
+
+      <textarea
+        id="reportDetectedAddress"
+        name="address"
+        rows="4"
+        readonly
+        style="
+          width:100%;
+          box-sizing:border-box;
+          padding:14px;
+          border-radius:10px;
+          border:1px solid #cbd5e1;
+          background:white;
+          resize:none;
+          font-family:inherit;
+          line-height:1.5;
+        "
+      ></textarea>
+
+
+
+      <!-- =====================================================
+           COORDINATES
+           ===================================================== -->
+
+      <div
+        style="
+          display:flex;
+          gap:12px;
+          flex-wrap:wrap;
+          margin-top:14px;
+        "
+      >
+
+
+        <!-- Latitude -->
+
+        <div
+          style="
+            flex:1;
+            min-width:150px;
+            padding:10px 12px;
+            background:white;
+            border:1px solid #e2e8f0;
+            border-radius:9px;
+          "
+        >
+
+          <strong style="font-size:12px;">
+            {{ t("latitude") | upper }}
+          </strong>
+
+          <div
+            id="reportLatDisplay"
+            style="margin-top:4px;"
+          >
+            —
+          </div>
+
+        </div>
+
+
+        <!-- Longitude -->
+
+        <div
+          style="
+            flex:1;
+            min-width:150px;
+            padding:10px 12px;
+            background:white;
+            border:1px solid #e2e8f0;
+            border-radius:9px;
+          "
+        >
+
+          <strong style="font-size:12px;">
+            {{ t("longitude") | upper }}
+          </strong>
+
+          <div
+            id="reportLonDisplay"
+            style="margin-top:4px;"
+          >
+            —
+          </div>
+
+        </div>
+
+
+      </div>
+
+      <div class="exact-location-preview-wrap">
+        <div class="exact-location-preview-head">
+          <strong>Exact GPS point</strong>
+          <span>The pin below uses the coordinates saved with this complaint.</span>
+        </div>
+        <div id="reportExactLocationMap" class="exact-location-preview" aria-label="Exact complaint location preview"></div>
+      </div>
+
+
+      <!-- =====================================================
+           GPS ACCURACY
+           ===================================================== -->
+
+      <p
+        id="reportAccuracyText"
+        style="
+          margin-top:12px;
+          margin-bottom:0;
+          font-size:14px;
+          opacity:.75;
+        "
+      >
+      </p>
+
+
+
+      <!-- =====================================================
+           CONFIRMATION QUESTION
+           ===================================================== -->
+
+      <div
+        id="reportConfirmationQuestion"
+        style="
+          margin-top:20px;
+          padding-top:18px;
+          border-top:1px solid #e2e8f0;
+        "
+      >
+
+        <p style="margin-top:0;">
+
+          <strong>
+            {{ t("is_location_correct") }}
+          </strong>
+
+        </p>
+
+
+        <div
+          style="
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+          "
+        >
+
+
+          <!-- Confirm Location -->
+
+          <button
+            type="button"
+            class="btn primary"
+            id="reportConfirmBtn"
+            onclick="confirmReportLocation()"
+          >
+            ✅ {{ t("yes_confirm_location") }}
+          </button>
+
+
+          <!-- Detect Again -->
+
+          <button
+            type="button"
+            class="btn light"
+            id="reportRetryBtn"
+            onclick="retryReportLocation()"
+          >
+            🔄 {{ t("detect_again") }}
+          </button>
+
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         COMPLAINT DESCRIPTION
+         ========================================================= -->
+
+    <textarea
+      name="description"
+      placeholder="{{ t('description_placeholder') }}"
+      required
+    ></textarea>
+
+
+
+    <!-- =========================================================
+         PHOTO UPLOAD
+         ========================================================= -->
+
+    <label class="upload-box">
+
+      {{ t("upload_before_photo") }}
+
+      <input
+        type="file"
+        name="before_photo"
+        accept="image/*"
+      >
+
+    </label>
+
+
+
+    <!-- =========================================================
+         FORM ACTIONS
+         ========================================================= -->
+
+    <div class="form-actions">
+
+
+      <a
+        class="btn ghost-dark"
+        href="/track"
+      >
+        {{ t("track_existing") }}
+      </a>
+
+
+      <button
+        class="btn primary"
+        type="submit"
+      >
+        {{ t("submit_complaint") }}
+      </button>
+
+
+    </div>
+
+
+  </form>
+
+</main>
+
+
+
+<!-- =============================================================
+     TRANSLATIONS FOR JAVASCRIPT
+
+     Flask/Jinja translates these first.
+     JavaScript then uses the already-translated text.
+
+     |tojson is important because it safely transfers text,
+     including Marathi Unicode, into JavaScript.
+     ============================================================= -->
+
+<script>
+
+const reportI18n = {
+
+    useMyLocation:
+        {{ t("use_my_location") | tojson }},
+
+    yesConfirmLocation:
+        {{ t("yes_confirm_location") | tojson }},
+
+    locationConfirmed:
+        {{ t("location_confirmed") | tojson }},
+
+    confirmGpsLocation:
+        {{ t("confirm_gps_location") | tojson }},
+
+    detectingLocation:
+        {{ t("detecting_location") | tojson }},
+
+    detectingButton:
+        {{ t("detecting_location_short") | tojson }},
+
+    gpsAccuracy:
+        {{ t("gps_accuracy") | tojson }},
+
+    metres:
+        {{ t("metres") | tojson }},
+
+    findingAddress:
+        {{ t("finding_address") | tojson }},
+
+    addressFoundConfirm:
+        {{ t("address_found_confirm") | tojson }},
+
+    browserLocationUnsupported:
+        {{ t("browser_location_unsupported") | tojson }},
+
+    readableAddressNotFound:
+        {{ t("readable_address_not_found") | tojson }},
+
+    addressServiceUnavailable:
+        {{ t("address_service_unavailable") | tojson }},
+
+    permissionDenied:
+        {{ t("location_permission_denied") | tojson }},
+
+    positionUnavailable:
+        {{ t("location_position_unavailable") | tojson }},
+
+    locationTimeout:
+        {{ t("location_timeout") | tojson }},
+
+    locationDetectionFailed:
+        {{ t("location_detection_failed") | tojson }},
+
+    detectBeforeConfirm:
+        {{ t("detect_before_confirm") | tojson }},
+
+    locationConfirmedSuccess:
+        {{ t("location_confirmed_success") | tojson }},
+
+    locationChangedAfterConfirmation:
+        {{ t("location_changed_after_confirmation") | tojson }},
+
+    confirmBeforeSubmit:
+        {{ t("confirm_before_submit") | tojson }}
+
+};
+
+
+
+/* =============================================================
+   SHOW LOCATION STATUS MESSAGE
+   ============================================================= */
+
+function showReportLocationStatus(message, type = "info") {
+
+    const status =
+        document.getElementById("reportLocationStatus");
+
+
+    status.style.display = "block";
+
+    status.innerHTML = message;
+
+
+    if (type === "success") {
+
+        status.style.background = "#ecfdf5";
+        status.style.borderColor = "#86efac";
+
+    }
+
+    else if (type === "error") {
+
+        status.style.background = "#fef2f2";
+        status.style.borderColor = "#fecaca";
+
+    }
+
+    else if (type === "warning") {
+
+        status.style.background = "#fffbeb";
+        status.style.borderColor = "#fde68a";
+
+    }
+
+    else {
+
+        status.style.background = "#eef6ff";
+        status.style.borderColor = "#cfe2ff";
+
+    }
+
+}
+
+
+
+/* =============================================================
+   ROBUST REVERSE GEOCODING
+   Backend first; browser-side OpenStreetMap fallback second.
+   ============================================================= */
+async function resolveReportHumanAddress(latitude, longitude) {
+    const backendUrl = "/api/reverse-geocode?lat=" + encodeURIComponent(latitude) + "&lon=" + encodeURIComponent(longitude);
+
+    try {
+        const response = await fetch(backendUrl, {
+            method: "GET",
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+        const data = await response.json();
+        if (response.ok && data && data.ok && (data.exact_address || data.display_name)) {
+            return {
+                address: data.exact_address || data.display_name,
+                shortLabel: data.short_label || "",
+                provider: data.provider || "server"
+            };
+        }
+    } catch (error) {
+        console.warn("CivicOS backend reverse geocoder unavailable:", error);
+    }
+
+    /* Final rescue path for demos: ask OpenStreetMap directly from the browser.
+       This helps when the hosting provider temporarily blocks/times out outbound DNS. */
+    try {
+        const directUrl = "https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=en"
+            + "&lat=" + encodeURIComponent(latitude)
+            + "&lon=" + encodeURIComponent(longitude);
+        const response = await fetch(directUrl, {
+            headers: { "Accept": "application/json" }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            const address = (data && data.display_name) ? String(data.display_name).trim() : "";
+            if (address) {
+                const a = data.address || {};
+                const locality = a.neighbourhood || a.suburb || a.village || a.town || a.city || a.county || "";
+                const district = a.city_district || a.state_district || a.county || "";
+                return {
+                    address,
+                    shortLabel: locality && district && locality !== district ? locality + ", " + district : (locality || district),
+                    provider: "browser-nominatim"
+                };
+            }
+        }
+    } catch (error) {
+        console.warn("CivicOS browser reverse geocoder unavailable:", error);
+    }
+
+    throw new Error("No human-readable address could be resolved.");
+}
+
+/* =============================================================
+   HIGH-ACCURACY GPS ACQUISITION
+   Collect several fresh readings and keep the most accurate one.
+   A single getCurrentPosition() call often returns a coarse Wi-Fi/IP
+   fix first, which can be hundreds of metres away.
+   ============================================================= */
+function acquireBestReportGpsPosition() {
+    return new Promise((resolve, reject) => {
+        let bestPosition = null;
+        let readings = 0;
+        let watchId = null;
+        let finished = false;
+        const startedAt = Date.now();
+        const MAX_WAIT_MS = 14000;
+        const TARGET_ACCURACY_M = 18;
+        const MIN_READINGS = 2;
+
+        const finish = (position, error) => {
+            if (finished) return;
+            finished = true;
+            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+            clearTimeout(timer);
+            if (position) resolve(position); else reject(error || new Error('Unable to determine location'));
+        };
+
+        const timer = setTimeout(() => {
+            if (bestPosition) finish(bestPosition);
+            else finish(null, new Error('Location request timed out'));
+        }, MAX_WAIT_MS);
+
+        watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                readings += 1;
+                const currentAccuracy = Number(position.coords.accuracy);
+                const bestAccuracy = bestPosition ? Number(bestPosition.coords.accuracy) : Infinity;
+
+                if (!bestPosition || (Number.isFinite(currentAccuracy) && currentAccuracy < bestAccuracy)) {
+                    bestPosition = position;
+                }
+
+                const shownAccuracy = bestPosition ? Math.round(Number(bestPosition.coords.accuracy) || 0) : 0;
+                showReportLocationStatus(
+                    '🛰️ Improving GPS accuracy… best fix ±' + shownAccuracy + ' m',
+                    shownAccuracy <= 30 ? 'success' : 'warning'
+                );
+
+                // Do not accept the very first coarse reading. Give GPS a moment to settle.
+                if (readings >= MIN_READINGS && currentAccuracy > 0 && currentAccuracy <= TARGET_ACCURACY_M && Date.now() - startedAt >= 1200) {
+                    finish(bestPosition);
+                }
+            },
+            (error) => {
+                // A temporary watch error should not discard a good reading already received.
+                if (bestPosition) finish(bestPosition);
+                else finish(null, error);
+            },
+            { enableHighAccuracy: true, timeout: MAX_WAIT_MS, maximumAge: 0 }
+        );
+    });
+}
+
+/* =============================================================
+   GET CURRENT GPS LOCATION
+   ============================================================= */
+
+function getReportLocation() {
+
+
+    const button =
+        document.getElementById("reportLocationBtn");
+
+
+    const addressBox =
+        document.getElementById("reportAddressBox");
+
+
+    const confirmation =
+        document.getElementById("reportLocationConfirmed");
+
+
+
+    /* Reset old confirmation */
+
+    confirmation.value = "false";
+
+
+    document.getElementById(
+        "reportConfirmBtn"
+    ).disabled = false;
+
+
+    document.getElementById(
+        "reportConfirmBtn"
+    ).innerHTML =
+        "✅ " + reportI18n.yesConfirmLocation;
+
+
+
+    /* Hide old confirmation box while detecting */
+
+    addressBox.style.display = "none";
+
+
+
+    /* =========================================================
+       CHECK SECURE CONTEXT / BROWSER SUPPORT
+       ========================================================= */
+
+    const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    if (!window.isSecureContext && !isLocalhost) {
+        const stored = (typeof getStoredCivicLocation === "function") ? getStoredCivicLocation() : null;
+        if (stored) {
+            showReportLocationStatus(
+                "⚠️ Live GPS is blocked on this HTTP network address. CivicOS loaded your last confirmed device location; verify the map pin before confirming.",
+                "warning"
+            );
+            chooseReportCoordinates(stored.lat, stored.lon, stored.address || null, stored.accuracy || null);
+        } else {
+            showReportLocationStatus(
+                "⚠️ Live GPS is blocked on this HTTP network address. Use Choose on Map / Search Address below for an exact pin, or open CivicOS on localhost/HTTPS for automatic GPS.",
+                "warning"
+            );
+            openReportLocationPicker();
+        }
+        const note = document.getElementById("reportSecureContextNote");
+        if (note) note.hidden = false;
+        return;
+    }
+
+    if (!navigator.geolocation) {
+
+
+        showReportLocationStatus(
+
+            "❌ " +
+            reportI18n.browserLocationUnsupported,
+
+            "error"
+
+        );
+
+
+        return;
+
+    }
+
+
+
+    showReportLocationStatus(
+
+        "📍 " +
+        reportI18n.detectingLocation
+
+    );
+
+
+
+    button.disabled = true;
+
+
+    button.innerHTML =
+
+        "⏳ " +
+        reportI18n.detectingButton;
+
+
+
+    /* =========================================================
+       GET GPS POSITION
+       ========================================================= */
+
+    acquireBestReportGpsPosition().then(async function(position) {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const accuracy = Number(position.coords.accuracy) || 9999;
+
+        document.getElementById("reportLat").value = latitude;
+        document.getElementById("reportLon").value = longitude;
+        document.getElementById("reportLatDisplay").innerText = latitude.toFixed(7);
+        document.getElementById("reportLonDisplay").innerText = longitude.toFixed(7);
+
+        const quality = accuracy <= 20 ? "Excellent" : accuracy <= 50 ? "Good" : accuracy <= 100 ? "Approximate" : "Low";
+        document.getElementById("reportAccuracyText").innerHTML =
+            "🎯 " + reportI18n.gpsAccuracy + ": ±" + Math.round(accuracy) + " " + reportI18n.metres +
+            " · " + quality + " GPS fix · Coordinates: " + latitude.toFixed(7) + ", " + longitude.toFixed(7);
+
+        renderReportExactLocation(latitude, longitude);
+        showReportLocationStatus("🔎 " + reportI18n.findingAddress);
+
+        try {
+            const resolved = await resolveReportHumanAddress(latitude, longitude);
+            const address = resolved.address;
+            document.getElementById("reportDetectedAddress").value = address;
+            document.getElementById("reportLocation").value = address;
+
+            if (typeof rememberCivicLocation === "function") {
+                rememberCivicLocation(latitude, longitude, address, accuracy, resolved.shortLabel || "");
+            }
+
+            addressBox.style.display = "block";
+            renderReportExactLocation(latitude, longitude);
+
+            if (accuracy <= 50) {
+                showReportLocationStatus("📍 " + reportI18n.addressFoundConfirm + " (GPS ±" + Math.round(accuracy) + " m)", "success");
+            } else {
+                showReportLocationStatus(
+                    "⚠️ Address found, but this device GPS is only accurate to about ±" + Math.round(accuracy) +
+                    " m. For an exact building/road point, move the map pin before confirming.",
+                    "warning"
+                );
+                setTimeout(openReportLocationPicker, 250);
+            }
+
+            setTimeout(function() {
+                addressBox.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 150);
+        } catch (error) {
+            console.error("CivicOS reverse geocoding error:", error);
+            document.getElementById("reportDetectedAddress").value = "";
+            document.getElementById("reportLocation").value = "";
+            addressBox.style.display = "block";
+            renderReportExactLocation(latitude, longitude);
+            showReportLocationStatus(
+                "⚠️ Address lookup is unavailable. Your best GPS point (±" + Math.round(accuracy) +
+                " m) is saved; use Search Address / Choose on Map to confirm the exact location.",
+                "warning"
+            );
+            openReportLocationPicker();
+        } finally {
+            button.disabled = false;
+            button.innerHTML = "📍 " + reportI18n.useMyLocation;
+        }
+    }).catch(function(error) {
+        button.disabled = false;
+        button.innerHTML = "📍 " + reportI18n.useMyLocation;
+
+        if (error && error.code === 1) {
+            showReportLocationStatus("❌ " + reportI18n.permissionDenied, "error");
+        } else if (error && error.code === 2) {
+            showReportLocationStatus("❌ " + reportI18n.positionUnavailable, "error");
+        } else if (error && error.code === 3) {
+            showReportLocationStatus("❌ " + reportI18n.locationTimeout, "error");
+        } else {
+            showReportLocationStatus("❌ " + reportI18n.locationDetectionFailed, "error");
+        }
+    });
+
+}
+
+
+
+/* =============================================================
+   CONFIRM DETECTED LOCATION
+   ============================================================= */
+
+function confirmReportLocation() {
+
+
+    const address =
+        document.getElementById(
+            "reportDetectedAddress"
+        ).value.trim();
+
+
+    const latitude =
+        document.getElementById(
+            "reportLat"
+        ).value;
+
+
+    const longitude =
+        document.getElementById(
+            "reportLon"
+        ).value;
+
+
+
+    if (
+        !address ||
+        !latitude ||
+        !longitude
+    ) {
+
+
+        alert(
+            reportI18n.detectBeforeConfirm
+        );
+
+
+        return;
+
+    }
+
+
+
+    /* Mark GPS location as confirmed */
+
+    document.getElementById(
+        "reportLocationConfirmed"
+    ).value =
+        "true";
+
+
+
+    /* Store readable address */
+
+    document.getElementById(
+        "reportLocation"
+    ).value =
+        address;
+
+    if (typeof rememberCivicLocation === "function") {
+        const accuracyText = document.getElementById("reportAccuracyText")?.textContent || "";
+        const match = accuracyText.match(/±(\d+)/);
+        rememberCivicLocation(latitude, longitude, address, match ? Number(match[1]) : null);
+    }
+
+
+    /* Update UI */
+
+    showReportLocationStatus(
+
+        "✅ " +
+        reportI18n.locationConfirmedSuccess,
+
+        "success"
+
+    );
+
+
+
+    document.getElementById(
+        "reportDetectedAddress"
+    ).style.border =
+        "2px solid #22c55e";
+
+
+
+    const confirmButton =
+        document.getElementById(
+            "reportConfirmBtn"
+        );
+
+
+    confirmButton.innerHTML =
+
+        "✅ " +
+        reportI18n.locationConfirmed;
+
+
+    confirmButton.disabled =
+        true;
+
+}
+
+
+
+/* =============================================================
+   DETECT LOCATION AGAIN
+   ============================================================= */
+
+function retryReportLocation() {
+
+
+    /* Reset confirmation */
+
+    document.getElementById(
+        "reportLocationConfirmed"
+    ).value =
+        "false";
+
+
+
+    /* Clear address */
+
+    document.getElementById(
+        "reportDetectedAddress"
+    ).value =
+        "";
+
+
+
+    /* Clear GPS */
+
+    document.getElementById(
+        "reportLat"
+    ).value =
+        "";
+
+
+    document.getElementById(
+        "reportLon"
+    ).value =
+        "";
+
+
+
+    /* Clear visible GPS */
+
+    document.getElementById(
+        "reportLatDisplay"
+    ).innerText =
+        "—";
+
+
+    document.getElementById(
+        "reportLonDisplay"
+    ).innerText =
+        "—";
+
+
+    document.getElementById(
+        "reportAccuracyText"
+    ).innerHTML =
+        "";
+
+    clearReportExactLocation();
+
+
+    /* Reset textarea border */
+
+    document.getElementById(
+        "reportDetectedAddress"
+    ).style.border =
+        "1px solid #cbd5e1";
+
+
+
+    /* Hide confirmation card */
+
+    document.getElementById(
+        "reportAddressBox"
+    ).style.display =
+        "none";
+
+
+
+    /* Reset confirmation button */
+
+    const confirmButton =
+        document.getElementById(
+            "reportConfirmBtn"
+        );
+
+
+    confirmButton.innerHTML =
+
+        "✅ " +
+        reportI18n.yesConfirmLocation;
+
+
+    confirmButton.disabled =
+        false;
+
+
+
+    /* Detect GPS again */
+
+    getReportLocation();
+
+}
+
+
+
+/* =============================================================
+   USER MANUALLY CHANGES LOCATION AFTER GPS CONFIRMATION
+   ============================================================= */
+
+document.getElementById(
+    "reportLocation"
+).addEventListener(
+
+    "input",
+
+    function() {
+
+
+        const confirmed =
+            document.getElementById(
+                "reportLocationConfirmed"
+            );
+
+
+        if (
+
+            confirmed.value === "true"
+
+            &&
+
+            this.value.trim() !==
+
+            document.getElementById(
+                "reportDetectedAddress"
+            ).value.trim()
+
+        ) {
+
+
+            confirmed.value =
+                "false";
+
+
+            const confirmButton =
+                document.getElementById(
+                    "reportConfirmBtn"
+                );
+
+
+            confirmButton.disabled =
+                false;
+
+
+            confirmButton.innerHTML =
+
+                "✅ " +
+                reportI18n.confirmGpsLocation;
+
+
+
+            showReportLocationStatus(
+
+                "⚠️ " +
+                reportI18n.locationChangedAfterConfirmation,
+
+                "warning"
+
+            );
+
+        }
+
+    }
+
+);
+
+
+
+/* =============================================================
+   FORM SUBMISSION VALIDATION
+   ============================================================= */
+
+document.getElementById(
+    "complaintForm"
+).addEventListener(
+
+    "submit",
+
+    function(event) {
+
+
+        const latitude =
+            document.getElementById(
+                "reportLat"
+            ).value;
+
+
+        const longitude =
+            document.getElementById(
+                "reportLon"
+            ).value;
+
+
+        const confirmed =
+            document.getElementById(
+                "reportLocationConfirmed"
+            ).value;
+
+
+
+        /*
+        If GPS was used, confirmation is mandatory.
+
+        Citizens who manually type the landmark without
+        using GPS can still submit normally.
+        */
+
+        if (
+
+            latitude
+
+            &&
+
+            longitude
+
+            &&
+
+            confirmed !== "true"
+
+        ) {
+
+
+            event.preventDefault();
+
+
+
+            alert(
+
+                reportI18n.confirmBeforeSubmit
+
+            );
+
+
+
+            const addressBox =
+                document.getElementById(
+                    "reportAddressBox"
+                );
+
+
+            addressBox.style.display =
+                "block";
+
+
+            addressBox.scrollIntoView({
+
+                behavior: "smooth",
+
+                block: "center"
+
+            });
+
+        }
+
+    }
+
+);
+
+
+/* =============================================================
+   LOCATION FALLBACK: ADDRESS SEARCH + MAP PIN
+   ============================================================= */
+let reportExactMap = null;
+let reportExactMarker = null;
+
+function renderReportExactLocation(lat,lon){
+    const el=document.getElementById('reportExactLocationMap');
+    if(!el) return;
+    const latitude=Number(lat), longitude=Number(lon);
+    if(!Number.isFinite(latitude)||!Number.isFinite(longitude)) return;
+    if(typeof L==='undefined'){
+        el.innerHTML='<div class="exact-location-coordinate-fallback">📍 '+latitude.toFixed(6)+', '+longitude.toFixed(6)+'</div>';
+        return;
+    }
+    if(!reportExactMap){
+        reportExactMap=L.map('reportExactLocationMap',{scrollWheelZoom:false,zoomControl:true,attributionControl:false}).setView([latitude,longitude],17);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(reportExactMap);
+    }else{
+        reportExactMap.setView([latitude,longitude],17);
+        setTimeout(()=>reportExactMap.invalidateSize(),60);
+    }
+    if(reportExactMarker) reportExactMarker.setLatLng([latitude,longitude]);
+    else reportExactMarker=L.marker([latitude,longitude]).addTo(reportExactMap);
+    reportExactMarker.bindPopup('<b>Complaint GPS point</b><br>'+latitude.toFixed(6)+', '+longitude.toFixed(6));
+    setTimeout(()=>reportExactMap && reportExactMap.invalidateSize(),180);
+}
+
+function clearReportExactLocation(){
+    if(reportExactMap){ try{reportExactMap.remove();}catch(_e){} }
+    reportExactMap=null; reportExactMarker=null;
+    const el=document.getElementById('reportExactLocationMap');
+    if(el) el.innerHTML='';
+}
+
+let reportPickerMap = null;
+let reportPickerMarker = null;
+
+function openReportLocationPicker(){
+    const card = document.getElementById('reportLocationFallback');
+    if(!card) return;
+    card.hidden = false;
+    const note = document.getElementById('reportSecureContextNote');
+    const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    if(note) note.hidden = window.isSecureContext || isLocalhost;
+    setTimeout(initReportLocationMap, 80);
+    card.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function closeReportLocationPicker(){
+    const card=document.getElementById('reportLocationFallback');
+    if(card) card.hidden=true;
+}
+
+function initReportLocationMap(){
+    const el=document.getElementById('reportLocationMap');
+    if(!el || typeof L==='undefined'){
+        if(el) el.innerHTML='<div style="height:100%;display:grid;place-items:center;padding:20px;text-align:center;color:#64748b">Map library unavailable. Address search above can still set the location.</div>';
+        return;
+    }
+    const stored=(typeof getStoredCivicLocation==='function')?getStoredCivicLocation():null;
+    const currentLat=parseFloat(document.getElementById('reportLat').value || (stored?stored.lat:'20.5937'));
+    const currentLon=parseFloat(document.getElementById('reportLon').value || (stored?stored.lon:'78.9629'));
+    if(reportPickerMap){
+        reportPickerMap.invalidateSize();
+        reportPickerMap.setView([currentLat,currentLon], document.getElementById('reportLat').value ? 16 : 12);
+        return;
+    }
+    reportPickerMap=L.map('reportLocationMap',{scrollWheelZoom:false}).setView([currentLat,currentLon],12);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(reportPickerMap);
+    reportPickerMap.on('click',e=>chooseReportCoordinates(e.latlng.lat,e.latlng.lng));
+    setTimeout(()=>reportPickerMap && reportPickerMap.invalidateSize(),250);
+}
+
+async function reverseReportCoordinates(lat, lon){
+    try{
+        const resolved = await resolveReportHumanAddress(lat, lon);
+        return resolved.address;
+    }catch(_e){
+        return '';
+    }
+}
+
+async function chooseReportCoordinates(lat,lon,address=null,accuracy=null){
+    const resolvedAddress=address || await reverseReportCoordinates(lat,lon);
+    document.getElementById('reportLat').value=Number(lat).toFixed(7);
+    document.getElementById('reportLon').value=Number(lon).toFixed(7);
+    document.getElementById('reportLatDisplay').innerText=Number(lat).toFixed(6);
+    document.getElementById('reportLonDisplay').innerText=Number(lon).toFixed(6);
+    document.getElementById('reportDetectedAddress').value=resolvedAddress;
+    document.getElementById('reportLocation').value=resolvedAddress;
+    document.getElementById('reportLocationConfirmed').value='false';
+    document.getElementById('reportAddressBox').style.display='block';
+    document.getElementById('reportAccuracyText').innerText=accuracy ? ('🎯 Last confirmed GPS accuracy: ±'+Math.round(Number(accuracy))+' m · Verify this pin before confirming.') : ('🗺 Exact coordinates selected on the CivicOS map: '+Number(lat).toFixed(6)+', '+Number(lon).toFixed(6));
+    renderReportExactLocation(lat,lon);
+    const btn=document.getElementById('reportConfirmBtn');
+    btn.disabled=false;
+    btn.innerHTML='✅ '+reportI18n.yesConfirmLocation;
+    showReportLocationStatus('📍 Location selected. Please confirm the detected address before submitting.','success');
+    if(reportPickerMap && typeof L!=='undefined'){
+        if(reportPickerMarker) reportPickerMarker.setLatLng([lat,lon]);
+        else reportPickerMarker=L.marker([lat,lon]).addTo(reportPickerMap);
+        reportPickerMap.setView([lat,lon],16);
+    }
+    document.getElementById('reportAddressBox').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function searchReportLocation(){
+    const input=document.getElementById('reportLocationSearch');
+    const results=document.getElementById('reportLocationSearchResults');
+    const query=(input.value||'').trim();
+    if(query.length<3){ results.innerHTML='<div style="font-size:11px;color:#9a6810">Enter at least 3 characters.</div>'; return; }
+    results.innerHTML='<div style="font-size:11px;color:#64748b">Searching…</div>';
+    try{
+        const res=await fetch('/api/geocode?q='+encodeURIComponent(query),{headers:{'Accept':'application/json'}});
+        const data=await res.json();
+        if(!data.results || !data.results.length){ results.innerHTML='<div style="font-size:11px;color:#64748b">No matching address found. You can still tap the map.</div>'; return; }
+        results.innerHTML='';
+        data.results.forEach(item=>{
+            const button=document.createElement('button');
+            button.type='button';
+            button.textContent=item.display_name;
+            button.addEventListener('click',()=>chooseReportCoordinates(parseFloat(item.lat),parseFloat(item.lon),item.display_name));
+            results.appendChild(button);
+        });
+    }catch(_e){
+        results.innerHTML='<div style="font-size:11px;color:#9a6810">Address search is unavailable right now. Tap the map to set coordinates manually.</div>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+    const input=document.getElementById('reportLocationSearch');
+    if(input) input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchReportLocation();}});
+});
+
+</script>
+
+{% endblock %}

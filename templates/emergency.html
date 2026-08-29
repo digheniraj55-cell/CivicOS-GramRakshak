@@ -1,0 +1,1532 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<section class="sos-page">
+
+  <form
+    class="sos-panel"
+    method="post"
+    id="sosForm"
+  >
+
+
+    <!-- =========================================================
+         SOS HEADER
+         ========================================================= -->
+
+    <div class="sos-icon">
+      SOS
+    </div>
+
+
+    <span class="section-label">
+      {{ t("emergency_sos_label") }}
+    </span>
+
+
+    <h1>
+      {{ t("send_urgent_safety_alert") }}
+    </h1>
+
+
+    <p>
+      {{ t("emergency_intro") }}
+    </p>
+
+
+
+    <!-- =========================================================
+         EMERGENCY DISCLAIMER
+         ========================================================= -->
+
+    <div
+      style="
+        margin:18px 0;
+        padding:14px 16px;
+        border-radius:12px;
+        background:rgba(255,255,255,.10);
+        border:1px solid rgba(255,255,255,.24);
+        line-height:1.5;
+        font-size:14px;
+      "
+    >
+
+      ⚠️ {{ t("sos_disclaimer") }}
+
+    </div>
+
+
+
+    <!-- =========================================================
+         EMERGENCY TYPE
+         ========================================================= -->
+
+    <div style="margin-top:18px;">
+
+
+      <small
+        style="
+          display:block;
+          margin-bottom:10px;
+          font-weight:700;
+        "
+      >
+        {{ t("select_emergency_type") }}
+      </small>
+
+
+      <!--
+      IMPORTANT:
+      This hidden input sends the exact English value to Flask.
+      That keeps your existing backend emergency_map working.
+      -->
+
+      <input
+        type="hidden"
+        name="type"
+        id="emergencyType"
+        value="Women Safety"
+      >
+
+
+
+      <div
+        id="emergencyTypeCards"
+        style="
+          display:grid;
+          grid-template-columns:repeat(3,1fr);
+          gap:12px;
+        "
+      >
+
+
+        <!-- WOMEN SAFETY -->
+
+        <button
+          type="button"
+          class="sos-type-card active"
+          data-emergency-type="Women Safety"
+          onclick="selectEmergencyType(this)"
+          style="
+            padding:16px 10px;
+            border-radius:13px;
+            border:2px solid #dc2626;
+            background:white;
+            color:#111827;
+            cursor:pointer;
+            font-weight:700;
+          "
+        >
+
+          <div
+            style="
+              font-size:28px;
+              margin-bottom:7px;
+            "
+          >
+            👩
+          </div>
+
+          <span>
+            {{ t("women_safety") }}
+          </span>
+
+        </button>
+
+
+
+        <!-- MEDICAL EMERGENCY -->
+
+        <button
+          type="button"
+          class="sos-type-card"
+          data-emergency-type="Medical Emergency"
+          onclick="selectEmergencyType(this)"
+          style="
+            padding:16px 10px;
+            border-radius:13px;
+            border:2px solid transparent;
+            background:white;
+            color:#111827;
+            cursor:pointer;
+            font-weight:700;
+          "
+        >
+
+          <div
+            style="
+              font-size:28px;
+              margin-bottom:7px;
+            "
+          >
+            🏥
+          </div>
+
+          <span>
+            {{ t("medical_emergency") }}
+          </span>
+
+        </button>
+
+
+
+        <!-- FIRE EMERGENCY -->
+
+        <button
+          type="button"
+          class="sos-type-card"
+          data-emergency-type="Fire Emergency"
+          onclick="selectEmergencyType(this)"
+          style="
+            padding:16px 10px;
+            border-radius:13px;
+            border:2px solid transparent;
+            background:white;
+            color:#111827;
+            cursor:pointer;
+            font-weight:700;
+          "
+        >
+
+          <div
+            style="
+              font-size:28px;
+              margin-bottom:7px;
+            "
+          >
+            🔥
+          </div>
+
+          <span>
+            {{ t("fire_emergency") }}
+          </span>
+
+        </button>
+
+
+      </div>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         LOCATION AREA DETAILS
+         ========================================================= -->
+
+    <input
+      name="village"
+      placeholder="{{ t('village_town') }}"
+      required
+      style="margin-top:18px;"
+    >
+
+
+    <input
+      name="ward"
+      placeholder="{{ t('ward_area') }}"
+      required
+    >
+
+
+    <input
+      name="location"
+      id="sosLocation"
+      placeholder="{{ t('exact_location') }}"
+      required
+    >
+
+
+
+    <!-- =========================================================
+         HIDDEN LOCATION DATA
+         ========================================================= -->
+
+    <input
+      type="hidden"
+      name="latitude"
+      id="sosLat"
+    >
+
+
+    <input
+      type="hidden"
+      name="longitude"
+      id="sosLon"
+    >
+
+
+    <input
+      type="hidden"
+      name="address"
+      id="sosAddress"
+    >
+
+
+    <input
+      type="hidden"
+      name="location_confirmed"
+      id="sosLocationConfirmed"
+      value="false"
+    >
+
+
+
+    <!-- =========================================================
+         USE MY LOCATION
+         ========================================================= -->
+
+    <button
+      type="button"
+      class="btn ghost"
+      id="sosLocationBtn"
+      onclick="getSOSLocation()"
+      style="
+        width:100%;
+        margin-top:10px;
+      "
+    >
+
+      📍 {{ t("use_my_location") }}
+
+    </button>
+
+    <button
+      type="button"
+      class="btn ghost"
+      id="sosMapPickerBtn"
+      onclick="openSOSLocationPicker()"
+      style="width:100%;margin-top:8px;"
+    >
+      🗺 Choose on Map / Search Address
+    </button>
+
+
+
+    <!-- =========================================================
+         LOCATION STATUS MESSAGE
+         ========================================================= -->
+
+    <div
+      id="sosLocationStatus"
+      style="
+        display:none;
+        margin-top:14px;
+        padding:13px 15px;
+        border-radius:10px;
+        background:white;
+        color:#111827;
+        font-weight:600;
+      "
+    >
+    </div>
+
+    <section class="location-fallback-card" id="sosLocationFallback" hidden style="color:#111827;">
+      <header>
+        <div>
+          <h4>Choose emergency location</h4>
+          <p>Search the address or tap the exact point on the map. This is the reliable fallback when browser GPS is blocked on a local HTTP IP.</p>
+        </div>
+        <button type="button" class="btn light" style="min-height:36px;padding:8px 12px" onclick="closeSOSLocationPicker()">Close</button>
+      </header>
+      <div class="location-tools-row">
+        <input id="sosLocationSearch" type="search" placeholder="Search road, landmark, locality…">
+        <button type="button" class="btn primary" onclick="searchSOSLocation()">Search Location</button>
+      </div>
+      <div id="sosLocationSearchResults" class="location-search-results"></div>
+      <div id="sosLocationMap" style="height:280px;border-radius:11px;overflow:hidden;background:#e8eff4;border:1px solid #dbe4ec"></div>
+      <div class="secure-location-note" id="sosSecureContextNote" hidden>
+        Browser GPS normally requires HTTPS on LAN addresses such as 10.x.x.x:5000. Map-pin selection keeps SOS location usable during local demos.
+      </div>
+    </section>
+
+
+
+    <!-- =========================================================
+         LOCATION CONFIRMATION CARD
+         ========================================================= -->
+
+    <div
+      id="sosAddressBox"
+      style="
+        display:none;
+        margin-top:16px;
+        padding:18px;
+        border-radius:14px;
+        background:white;
+        color:#111827;
+      "
+    >
+
+
+      <span
+        style="
+          display:inline-block;
+          padding:5px 9px;
+          border-radius:20px;
+          background:#fee2e2;
+          color:#991b1b;
+          font-size:12px;
+          font-weight:700;
+        "
+      >
+
+        📍 {{ t("gps_location_detected") }}
+
+      </span>
+
+
+
+      <h3
+        style="
+          margin:12px 0 7px;
+        "
+      >
+
+        {{ t("confirm_complaint_location") }}
+
+      </h3>
+
+
+
+      <p
+        style="
+          margin:0 0 12px;
+          opacity:.75;
+        "
+      >
+
+        {{ t("gps_address_explanation") }}
+
+      </p>
+
+
+
+      <!-- DETECTED ADDRESS -->
+
+      <textarea
+        id="sosDetectedAddress"
+        rows="4"
+        readonly
+        style="
+          width:100%;
+          box-sizing:border-box;
+          padding:12px;
+          border-radius:9px;
+          border:1px solid #cbd5e1;
+          resize:none;
+          font-family:inherit;
+          line-height:1.5;
+        "
+      ></textarea>
+
+
+
+      <!-- COORDINATES -->
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:10px;
+          margin-top:12px;
+        "
+      >
+
+
+        <div
+          style="
+            padding:10px;
+            border:1px solid #e2e8f0;
+            border-radius:8px;
+          "
+        >
+
+          <small>
+            {{ t("latitude") }}
+          </small>
+
+          <b
+            id="sosLatDisplay"
+            style="
+              display:block;
+              margin-top:3px;
+            "
+          >
+            —
+          </b>
+
+        </div>
+
+
+
+        <div
+          style="
+            padding:10px;
+            border:1px solid #e2e8f0;
+            border-radius:8px;
+          "
+        >
+
+          <small>
+            {{ t("longitude") }}
+          </small>
+
+          <b
+            id="sosLonDisplay"
+            style="
+              display:block;
+              margin-top:3px;
+            "
+          >
+            —
+          </b>
+
+        </div>
+
+
+      </div>
+
+
+
+      <!-- GPS ACCURACY -->
+
+      <p
+        id="sosAccuracyText"
+        style="
+          margin:10px 0;
+          font-size:13px;
+          opacity:.75;
+        "
+      >
+      </p>
+
+
+
+      <!-- CONFIRM QUESTION -->
+
+      <p>
+        <strong>
+          {{ t("is_location_correct") }}
+        </strong>
+      </p>
+
+
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+
+
+        <button
+          type="button"
+          class="btn primary"
+          id="sosConfirmLocationBtn"
+          onclick="confirmSOSLocation()"
+        >
+
+          ✅ {{ t("yes_confirm_location") }}
+
+        </button>
+
+
+
+        <button
+          type="button"
+          class="btn light"
+          onclick="retrySOSLocation()"
+        >
+
+          🔄 {{ t("detect_again") }}
+
+        </button>
+
+
+      </div>
+
+
+    </div>
+
+
+
+    <!-- =========================================================
+         EMERGENCY READY / SUCCESS-PREVIEW STATE
+         ========================================================= -->
+
+    <div
+      id="sosReadyBox"
+      style="
+        display:none;
+        margin-top:18px;
+        padding:16px;
+        border-radius:12px;
+        background:#ecfdf5;
+        color:#166534;
+        border:1px solid #86efac;
+      "
+    >
+
+      <strong>
+        ✅ {{ t("emergency_ready") }}
+      </strong>
+
+
+      <p
+        style="
+          margin:7px 0 0;
+        "
+      >
+
+        {{ t("emergency_location_confirmed") }}
+
+      </p>
+
+
+      <small
+        style="
+          display:block;
+          margin-top:6px;
+          opacity:.8;
+        "
+      >
+
+        {{ t("emergency_priority_notice") }}
+
+      </small>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         SEND BUTTON
+         ========================================================= -->
+
+    <div
+      class="form-actions"
+      style="
+        margin-top:20px;
+      "
+    >
+
+
+      <button
+        class="btn danger"
+        type="submit"
+        style="
+          width:100%;
+          font-size:16px;
+          padding:15px 18px;
+        "
+      >
+
+        🚨 {{ t("send_sos_alert") }}
+
+      </button>
+
+
+    </div>
+
+
+  </form>
+
+</section>
+
+
+
+<!-- =============================================================
+     JAVASCRIPT TRANSLATIONS
+     ============================================================= -->
+
+<script>
+
+const sosI18n = {
+
+    useMyLocation:
+        {{ t("use_my_location") | tojson }},
+
+    detectingLocation:
+        {{ t("detecting_location") | tojson }},
+
+    findingAddress:
+        {{ t("finding_address") | tojson }},
+
+    addressFound:
+        {{ t("address_found_confirm") | tojson }},
+
+    locationConfirmed:
+        {{ t("location_confirmed") | tojson }},
+
+    locationConfirmedSuccess:
+        {{ t("location_confirmed_success") | tojson }},
+
+    gpsAccuracy:
+        {{ t("gps_accuracy") | tojson }},
+
+    metres:
+        {{ t("metres") | tojson }},
+
+    permissionDenied:
+        {{ t("location_permission_denied") | tojson }},
+
+    positionUnavailable:
+        {{ t("location_position_unavailable") | tojson }},
+
+    timeout:
+        {{ t("location_timeout") | tojson }},
+
+    detectionFailed:
+        {{ t("location_detection_failed") | tojson }},
+
+    addressUnavailable:
+        {{ t("address_service_unavailable") | tojson }},
+
+    confirmFirst:
+        {{ t("sos_confirm_location_first") | tojson }},
+
+    yesConfirmLocation:
+        {{ t("yes_confirm_location") | tojson }}
+
+};
+
+
+
+/* =============================================================
+   EMERGENCY TYPE SELECTION
+   ============================================================= */
+
+function selectEmergencyType(button) {
+
+
+    document
+      .querySelectorAll(".sos-type-card")
+      .forEach(function(card) {
+
+
+          card.classList.remove("active");
+
+
+          card.style.border =
+              "2px solid transparent";
+
+
+      });
+
+
+
+    button.classList.add("active");
+
+
+    button.style.border =
+        "2px solid #dc2626";
+
+
+
+    document.getElementById(
+        "emergencyType"
+    ).value =
+        button.dataset.emergencyType;
+
+}
+
+
+
+/* =============================================================
+   SOS STATUS MESSAGE
+   ============================================================= */
+
+function showSOSStatus(
+    message,
+    type = "info"
+) {
+
+
+    const box =
+        document.getElementById(
+            "sosLocationStatus"
+        );
+
+
+    box.style.display =
+        "block";
+
+
+    box.innerHTML =
+        message;
+
+
+
+    if (type === "success") {
+
+
+        box.style.background =
+            "#ecfdf5";
+
+
+        box.style.color =
+            "#166534";
+
+
+        box.style.border =
+            "1px solid #86efac";
+
+    }
+
+
+    else if (type === "error") {
+
+
+        box.style.background =
+            "#fef2f2";
+
+
+        box.style.color =
+            "#991b1b";
+
+
+        box.style.border =
+            "1px solid #fecaca";
+
+    }
+
+
+    else {
+
+
+        box.style.background =
+            "white";
+
+
+        box.style.color =
+            "#111827";
+
+
+        box.style.border =
+            "1px solid #e2e8f0";
+
+    }
+
+}
+
+
+
+/* =============================================================
+   GET SOS LOCATION
+   ============================================================= */
+
+function getSOSLocation() {
+
+
+    const button =
+        document.getElementById(
+            "sosLocationBtn"
+        );
+
+
+    const addressBox =
+        document.getElementById(
+            "sosAddressBox"
+        );
+
+
+    document.getElementById(
+        "sosLocationConfirmed"
+    ).value =
+        "false";
+
+
+    document.getElementById(
+        "sosReadyBox"
+    ).style.display =
+        "none";
+
+
+    addressBox.style.display =
+        "none";
+
+
+
+    const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    if (!window.isSecureContext && !isLocalhost) {
+        showSOSStatus(
+            "⚠️ Browser GPS is blocked on this HTTP network address. Use Choose on Map / Search Address below, or use HTTPS.",
+            "warning"
+        );
+        openSOSLocationPicker();
+        const note = document.getElementById("sosSecureContextNote");
+        if (note) note.hidden = false;
+        return;
+    }
+
+    if (!navigator.geolocation) {
+
+
+        showSOSStatus(
+
+            "❌ " +
+            sosI18n.detectionFailed,
+
+            "error"
+
+        );
+
+
+        return;
+
+    }
+
+
+
+    showSOSStatus(
+
+        "📍 " +
+        sosI18n.detectingLocation
+
+    );
+
+
+
+    button.disabled =
+        true;
+
+
+
+    navigator.geolocation.getCurrentPosition(
+
+        async function(position) {
+
+
+            const latitude =
+                position.coords.latitude;
+
+
+            const longitude =
+                position.coords.longitude;
+
+
+            const accuracy =
+                position.coords.accuracy;
+
+
+
+            /* STORE COORDINATES */
+
+            document.getElementById(
+                "sosLat"
+            ).value =
+                latitude;
+
+
+            document.getElementById(
+                "sosLon"
+            ).value =
+                longitude;
+
+
+
+            /* DISPLAY COORDINATES */
+
+            document.getElementById(
+                "sosLatDisplay"
+            ).innerText =
+                latitude.toFixed(6);
+
+
+            document.getElementById(
+                "sosLonDisplay"
+            ).innerText =
+                longitude.toFixed(6);
+
+
+
+            /* ACCURACY */
+
+            document.getElementById(
+                "sosAccuracyText"
+            ).innerHTML =
+
+                "🎯 "
+                + sosI18n.gpsAccuracy
+                + ": "
+                + Math.round(accuracy)
+                + " "
+                + sosI18n.metres;
+
+
+
+            showSOSStatus(
+
+                "🔎 " +
+                sosI18n.findingAddress
+
+            );
+
+
+
+            /* =================================================
+               REVERSE GEOCODING
+               ================================================= */
+
+            try {
+
+
+                const url =
+
+                    "/api/reverse-geocode"
+
+                    + "?lat=" +
+                    encodeURIComponent(latitude)
+
+                    + "&lon=" +
+                    encodeURIComponent(longitude);
+
+
+
+                const response =
+                    await fetch(url);
+
+
+
+                if (!response.ok) {
+
+
+                    throw new Error(
+                        "Address lookup failed"
+                    );
+
+                }
+
+
+
+                const data =
+                    await response.json();
+
+
+
+                if (
+                    data &&
+                    data.display_name
+                ) {
+
+
+                    const address =
+                        data.exact_address || data.display_name;
+
+
+
+                    document.getElementById(
+                        "sosDetectedAddress"
+                    ).value =
+                        address;
+
+
+                    document.getElementById(
+                        "sosAddress"
+                    ).value =
+                        address;
+
+
+                    document.getElementById(
+                        "sosLocation"
+                    ).value =
+                        address;
+
+
+
+                    addressBox.style.display =
+                        "block";
+
+
+
+                    showSOSStatus(
+
+                        "📍 " +
+                        sosI18n.addressFound,
+
+                        "success"
+
+                    );
+
+
+
+                    setTimeout(
+                        function() {
+
+
+                            addressBox.scrollIntoView({
+
+                                behavior:
+                                    "smooth",
+
+                                block:
+                                    "center"
+
+                            });
+
+
+                        },
+
+                        100
+                    );
+
+                }
+
+
+                else {
+
+
+                    throw new Error(
+                        "No readable address"
+                    );
+
+                }
+
+            }
+
+
+            catch (error) {
+
+
+                console.error(
+                    "SOS location error:",
+                    error
+                );
+
+
+                const fallbackAddress =
+                    "GPS location: " + latitude.toFixed(6) + ", " + longitude.toFixed(6);
+
+                document.getElementById("sosDetectedAddress").value = fallbackAddress;
+                document.getElementById("sosAddress").value = fallbackAddress;
+                document.getElementById("sosLocation").value = fallbackAddress;
+                addressBox.style.display = "block";
+
+                showSOSStatus(
+                    "⚠️ " + sosI18n.addressUnavailable + " GPS coordinates are still ready to confirm.",
+                    "warning"
+                );
+
+            }
+
+
+
+            button.disabled =
+                false;
+
+
+            button.innerHTML =
+
+                "📍 " +
+                sosI18n.useMyLocation;
+
+        },
+
+
+
+        /* =====================================================
+           GEOLOCATION ERRORS
+           ===================================================== */
+
+        function(error) {
+
+
+            button.disabled =
+                false;
+
+
+            button.innerHTML =
+
+                "📍 " +
+                sosI18n.useMyLocation;
+
+
+
+            if (
+                error.code ===
+                error.PERMISSION_DENIED
+            ) {
+
+
+                showSOSStatus(
+
+                    "❌ " +
+                    sosI18n.permissionDenied,
+
+                    "error"
+
+                );
+
+            }
+
+
+            else if (
+                error.code ===
+                error.POSITION_UNAVAILABLE
+            ) {
+
+
+                showSOSStatus(
+
+                    "❌ " +
+                    sosI18n.positionUnavailable,
+
+                    "error"
+
+                );
+
+            }
+
+
+            else if (
+                error.code ===
+                error.TIMEOUT
+            ) {
+
+
+                showSOSStatus(
+
+                    "❌ " +
+                    sosI18n.timeout,
+
+                    "error"
+
+                );
+
+            }
+
+
+            else {
+
+
+                showSOSStatus(
+
+                    "❌ " +
+                    sosI18n.detectionFailed,
+
+                    "error"
+
+                );
+
+            }
+
+        },
+
+
+
+        {
+
+            enableHighAccuracy: true,
+
+            timeout: 15000,
+
+            maximumAge: 0
+
+        }
+
+    );
+
+}
+
+
+
+/* =============================================================
+   CONFIRM SOS LOCATION
+   ============================================================= */
+
+function confirmSOSLocation() {
+
+
+    const address =
+        document.getElementById(
+            "sosDetectedAddress"
+        ).value.trim();
+
+
+    const latitude =
+        document.getElementById(
+            "sosLat"
+        ).value;
+
+
+    const longitude =
+        document.getElementById(
+            "sosLon"
+        ).value;
+
+
+
+    if (
+        !address ||
+        !latitude ||
+        !longitude
+    ) {
+
+
+        return;
+
+    }
+
+
+
+    document.getElementById(
+        "sosLocationConfirmed"
+    ).value =
+        "true";
+
+    if (typeof rememberCivicLocation === "function") {
+        rememberCivicLocation(latitude, longitude, address, null);
+    }
+
+
+    const confirmButton =
+        document.getElementById(
+            "sosConfirmLocationBtn"
+        );
+
+
+    confirmButton.disabled =
+        true;
+
+
+    confirmButton.innerHTML =
+
+        "✅ " +
+        sosI18n.locationConfirmed;
+
+
+
+    showSOSStatus(
+
+        "✅ " +
+        sosI18n.locationConfirmedSuccess,
+
+        "success"
+
+    );
+
+
+
+    document.getElementById(
+        "sosReadyBox"
+    ).style.display =
+        "block";
+
+}
+
+
+
+/* =============================================================
+   RETRY SOS LOCATION
+   ============================================================= */
+
+function retrySOSLocation() {
+
+
+    document.getElementById(
+        "sosLocationConfirmed"
+    ).value =
+        "false";
+
+
+    document.getElementById(
+        "sosDetectedAddress"
+    ).value =
+        "";
+
+
+    document.getElementById(
+        "sosAddress"
+    ).value =
+        "";
+
+
+    document.getElementById(
+        "sosLat"
+    ).value =
+        "";
+
+
+    document.getElementById(
+        "sosLon"
+    ).value =
+        "";
+
+
+    document.getElementById(
+        "sosLatDisplay"
+    ).innerText =
+        "—";
+
+
+    document.getElementById(
+        "sosLonDisplay"
+    ).innerText =
+        "—";
+
+
+    document.getElementById(
+        "sosAccuracyText"
+    ).innerHTML =
+        "";
+
+
+    document.getElementById(
+        "sosAddressBox"
+    ).style.display =
+        "none";
+
+
+    document.getElementById(
+        "sosReadyBox"
+    ).style.display =
+        "none";
+
+
+
+    const confirmButton =
+        document.getElementById(
+            "sosConfirmLocationBtn"
+        );
+
+
+    confirmButton.disabled =
+        false;
+
+
+    confirmButton.innerHTML =
+
+        "✅ " +
+        sosI18n.yesConfirmLocation;
+
+
+
+    getSOSLocation();
+
+}
+
+
+
+/* =============================================================
+   REQUIRE CONFIRMED LOCATION BEFORE SOS
+   ============================================================= */
+
+document.getElementById(
+    "sosForm"
+).addEventListener(
+
+    "submit",
+
+    function(event) {
+
+
+        const confirmed =
+            document.getElementById(
+                "sosLocationConfirmed"
+            ).value;
+
+
+
+        if (
+            confirmed !== "true"
+        ) {
+
+
+            event.preventDefault();
+
+
+
+            alert(
+                sosI18n.confirmFirst
+            );
+
+
+
+            document.getElementById(
+                "sosLocationBtn"
+            ).scrollIntoView({
+
+                behavior:
+                    "smooth",
+
+                block:
+                    "center"
+
+            });
+
+        }
+
+    }
+
+);
+
+
+/* =============================================================
+   SOS LOCATION FALLBACK: ADDRESS SEARCH + MAP PIN
+   ============================================================= */
+let sosPickerMap = null;
+let sosPickerMarker = null;
+
+function openSOSLocationPicker(){
+    const card=document.getElementById('sosLocationFallback');
+    if(!card) return;
+    card.hidden=false;
+    const note=document.getElementById('sosSecureContextNote');
+    const isLocalhost=["localhost","127.0.0.1","::1"].includes(window.location.hostname);
+    if(note) note.hidden=window.isSecureContext||isLocalhost;
+    setTimeout(initSOSLocationMap,80);
+    card.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeSOSLocationPicker(){const card=document.getElementById('sosLocationFallback');if(card)card.hidden=true;}
+function initSOSLocationMap(){
+    const el=document.getElementById('sosLocationMap');
+    if(!el||typeof L==='undefined'){
+        if(el)el.innerHTML='<div style="height:100%;display:grid;place-items:center;padding:20px;text-align:center;color:#64748b">Map library unavailable. Address search can still set the emergency location.</div>';
+        return;
+    }
+    const stored=(typeof getStoredCivicLocation==='function')?getStoredCivicLocation():null;
+    const lat=parseFloat(document.getElementById('sosLat').value||(stored?stored.lat:'20.5937'));
+    const lon=parseFloat(document.getElementById('sosLon').value||(stored?stored.lon:'78.9629'));
+    if(sosPickerMap){sosPickerMap.invalidateSize();sosPickerMap.setView([lat,lon],document.getElementById('sosLat').value?16:12);return;}
+    sosPickerMap=L.map('sosLocationMap',{scrollWheelZoom:false}).setView([lat,lon],12);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(sosPickerMap);
+    sosPickerMap.on('click',e=>chooseSOSCoordinates(e.latlng.lat,e.latlng.lng));
+    setTimeout(()=>sosPickerMap&&sosPickerMap.invalidateSize(),250);
+}
+async function reverseSOSCoordinates(lat,lon){
+    try{const r=await fetch('/api/reverse-geocode?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon));const d=await r.json();return d.display_name||('GPS location: '+Number(lat).toFixed(6)+', '+Number(lon).toFixed(6));}
+    catch(_e){return 'GPS location: '+Number(lat).toFixed(6)+', '+Number(lon).toFixed(6);}
+}
+async function chooseSOSCoordinates(lat,lon,address=null){
+    const a=address||await reverseSOSCoordinates(lat,lon);
+    document.getElementById('sosLat').value=Number(lat).toFixed(7);
+    document.getElementById('sosLon').value=Number(lon).toFixed(7);
+    document.getElementById('sosLatDisplay').innerText=Number(lat).toFixed(6);
+    document.getElementById('sosLonDisplay').innerText=Number(lon).toFixed(6);
+    document.getElementById('sosDetectedAddress').value=a;
+    document.getElementById('sosAddress').value=a;
+    document.getElementById('sosLocation').value=a;
+    document.getElementById('sosLocationConfirmed').value='false';
+    document.getElementById('sosAddressBox').style.display='block';
+    document.getElementById('sosReadyBox').style.display='none';
+    document.getElementById('sosAccuracyText').innerText='🗺 Emergency point selected manually on the map.';
+    const btn=document.getElementById('sosConfirmLocationBtn');btn.disabled=false;btn.innerHTML='✅ '+sosI18n.yesConfirmLocation;
+    showSOSStatus('📍 Emergency location selected. Confirm it before sending SOS.','success');
+    if(sosPickerMap&&typeof L!=='undefined'){if(sosPickerMarker)sosPickerMarker.setLatLng([lat,lon]);else sosPickerMarker=L.marker([lat,lon]).addTo(sosPickerMap);sosPickerMap.setView([lat,lon],16);}
+    document.getElementById('sosAddressBox').scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function searchSOSLocation(){
+    const input=document.getElementById('sosLocationSearch'),results=document.getElementById('sosLocationSearchResults'),q=(input.value||'').trim();
+    if(q.length<3){results.innerHTML='<div style="font-size:11px;color:#9a6810">Enter at least 3 characters.</div>';return;}
+    results.innerHTML='<div style="font-size:11px;color:#64748b">Searching…</div>';
+    try{const r=await fetch('/api/geocode?q='+encodeURIComponent(q));const d=await r.json();if(!d.results||!d.results.length){results.innerHTML='<div style="font-size:11px;color:#64748b">No result found. Tap the map instead.</div>';return;}results.innerHTML='';d.results.forEach(item=>{const b=document.createElement('button');b.type='button';b.textContent=item.display_name;b.addEventListener('click',()=>chooseSOSCoordinates(parseFloat(item.lat),parseFloat(item.lon),item.display_name));results.appendChild(b);});}
+    catch(_e){results.innerHTML='<div style="font-size:11px;color:#9a6810">Search unavailable. Tap the map to choose the emergency point.</div>';}
+}
+document.addEventListener('DOMContentLoaded',()=>{const i=document.getElementById('sosLocationSearch');if(i)i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchSOSLocation();}});});
+
+</script>
+
+{% endblock %}

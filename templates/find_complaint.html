@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Find Complaint ID · CivicOS{% endblock %}
+{% block content %}
+<main class="page-shell recovery-page">
+  <div class="page-title recovery-title">
+    <span class="section-label">Complaint Recovery</span>
+    <h1>{{ t('find_complaint') }}</h1>
+    <p>{{ t('recovery_help') }} We never ask you to remember a long tracking number forever.</p>
+  </div>
+
+  <section class="recovery-search-card">
+    <form method="post" class="recovery-form">
+      <label><span>{{ t('citizen_name') }}</span><input name="citizen_name" autocomplete="name" required placeholder="{{ t('citizen_name') }}"></label>
+      <label><span>{{ t('phone_number') }}</span><input name="phone" inputmode="tel" autocomplete="tel" required placeholder="{{ t('phone_number') }}"></label>
+      <button class="btn primary" type="submit">⌕ {{ t('find_complaint') }}</button>
+    </form>
+    <div class="privacy-note"><span>◇</span><p>Recovery requires both the citizen name and phone number stored with the complaint. Complaint details are not returned from a phone number alone.</p></div>
+  </section>
+
+  {% if recent %}
+  <section class="recovery-results-section">
+    <div class="home-panel-head"><div><span class="section-label">Device Memory</span><h2>{{ t('recent_on_device') }}</h2></div></div>
+    <div class="recovered-grid">
+      {% for c in recent %}
+      <article class="recovered-card">
+        <div class="recovered-id">#{{ c.id }}</div>
+        <div><b>{{ c.title }}</b><small>{{ status_label(c.status) }} · {{ c.ward }}, {{ c.village }}</small><span>{{ display_time(c.created_at) }}</span></div>
+        <a class="btn light" href="/track?cid={{ c.id }}">{{ t('open_tracking') }}</a>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if searched %}
+  <section class="recovery-results-section">
+    <div class="home-panel-head"><div><span class="section-label">Verified Match</span><h2>Your complaint IDs</h2></div><a href="/notifications">{{ t('my_updates') }} →</a></div>
+    {% if results %}
+    <div class="recovered-grid">
+      {% for c in results %}
+      <article class="recovered-card">
+        <div class="recovered-id">#{{ c.id }}</div>
+        <div><b>{{ c.title }}</b><small>{{ status_label(c.status) }} · {{ department_label(c.department) }}</small><span>{{ display_time(c.created_at) }} · {{ c.ward }}, {{ c.village }}</span></div>
+        <a class="btn primary" href="/track?cid={{ c.id }}">{{ t('open_tracking') }}</a>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state-card compact"><span>⌕</span><h3>{{ t('no_recovered_complaints') }}</h3><p>Check the spelling of the name and use the same phone number entered when the complaint was submitted.</p></div>
+    {% endif %}
+  </section>
+  {% endif %}
+</main>
+{% endblock %}

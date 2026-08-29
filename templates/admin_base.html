@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="{{ current_lang }}" data-admin-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071425">
+  <title>{% block title %}CivicOS Command Center{% endblock %}</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+  <script>
+    try { document.documentElement.dataset.adminTheme = localStorage.getItem('civicos-admin-theme') || 'light'; } catch(e) {}
+  </script>
+</head>
+<body class="admin-app-body">
+  <div class="admin-app-shell">
+    <aside class="admin-side" id="adminSidebar">
+      <a class="admin-brand" href="{{ url_for('admin') }}">
+        <span class="admin-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><path d="M24 4 39 12.5v8.2l-6.2-3.5v-1L24 11.3l-8.8 4.9v10.2l8.8 4.9 8.8-4.9v-1l6.2-3.5v8.2L24 38.7 9 30.2V12.5Z" fill="currentColor"/><path d="M20.4 17.9 24 15.8l3.6 2.1v4.2L24 24.2l-3.6-2.1Z" fill="currentColor" opacity=".7"/></svg>
+        </span>
+        <span><strong>CivicOS</strong><small>Smart Governance. Stronger Communities.</small></span>
+      </a>
+
+      <nav class="admin-side-nav" aria-label="Command Center navigation">
+        <a class="{{ 'active' if admin_active == 'command' else '' }}" href="{{ url_for('admin') }}"><span>⌂</span>Command Center</a>
+        <a class="{{ 'active' if admin_active == 'dashboard' else '' }}" href="{{ url_for('admin_dashboard') }}"><span>◫</span>Dashboard</a>
+        <a class="{{ 'active' if admin_active == 'complaints' else '' }}" href="{{ url_for('admin_complaints') }}"><span>◉</span>Complaints <b class="nav-count">{{ stats.active if stats else 0 }}</b></a>
+        <a class="{{ 'active' if admin_active == 'departments' else '' }}" href="{{ url_for('admin_departments') }}"><span>▣</span>Departments</a>
+        <a class="{{ 'active' if admin_active == 'workers' else '' }}" href="{{ url_for('admin_workers') }}"><span>♙</span>Field Workers</a>
+        <a class="{{ 'active' if admin_active == 'analytics' else '' }}" href="{{ url_for('admin_analytics') }}"><span>⌁</span>Analytics</a>
+        <a class="{{ 'active' if admin_active == 'sla' else '' }}" href="{{ url_for('admin_sla') }}"><span>◴</span>SLA & Escalations</a>
+        <a class="{{ 'active' if admin_active == 'feedback' else '' }}" href="{{ url_for('admin_feedback') }}"><span>♡</span>Citizen Feedback</a>
+        <a class="{{ 'active' if admin_active == 'reports' else '' }}" href="{{ url_for('admin_reports') }}"><span>▤</span>Reports</a>
+        <a class="{{ 'active' if admin_active == 'transparency' else '' }}" href="{{ url_for('admin_transparency') }}"><span>◇</span>Transparency</a>
+        <a class="{{ 'active' if admin_active == 'settings' else '' }}" href="{{ url_for('admin_settings') }}"><span>⚙</span>Settings</a>
+      </nav>
+
+      <div class="admin-quick-card">
+        <strong>Quick Actions</strong>
+        <a class="quick-blue {{ 'active' if admin_active == 'announcements' else '' }}" href="{{ url_for('admin_announcements') }}">＋ Add Announcement</a>
+        <a class="quick-green {{ 'active' if admin_active == 'alerts' else '' }}" href="{{ url_for('admin_alerts') }}">▣ Send Alert / SMS</a>
+        <a class="quick-purple" href="{{ url_for('admin_export') }}">↧ Export Report</a>
+      </div>
+
+      <a class="admin-sos-card {{ 'active' if admin_active == 'emergency' else '' }}" href="{{ url_for('admin_emergency') }}">
+        <span><b>Emergency SOS</b><small>View & respond to SOS</small></span><i>☎</i>
+      </a>
+    </aside>
+
+    <section class="admin-workspace">
+      <header class="admin-topbar">
+        <div class="admin-top-left">
+          <button class="admin-menu-button" type="button" onclick="toggleAdminSidebar()" aria-label="Toggle admin menu">☰</button>
+          <button class="admin-area-pill admin-live-area" id="adminLiveArea" type="button" onclick="centerAdminMapOnLiveLocation(true)" title="Detect and center on this device's live location"><span>●</span><b id="adminAreaName">Locating…</b><i>↻</i></button>
+        </div>
+        <form class="admin-global-search" method="get" action="{{ url_for('admin_complaints') }}">
+          <span>⌕</span><input name="q" value="{{ search_query if search_query is defined else '' }}" placeholder="Search complaints, locations, departments…"><kbd>⌘ K</kbd>
+        </form>
+        <div class="admin-user-actions">
+          <a class="admin-bell" href="{{ url_for('admin_sla') }}" title="Critical alerts">♧{% if stats and stats.escalated %}<b>{{ stats.escalated }}</b>{% endif %}</a>
+          <button class="admin-theme-button" type="button" onclick="toggleAdminTheme()" title="Toggle appearance">☼</button>
+          <div class="admin-user-chip"><span class="admin-avatar">A</span><span><b>{{ session.get('admin','Admin User') }}</b><small>Super Admin</small></span></div>
+          <a class="admin-logout-link" href="{{ url_for('logout') }}">Logout</a>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="admin-flash-stack">
+            {% for cat,msg in messages %}<div class="admin-flash {{ cat }}">{{ msg }}</div>{% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <main class="admin-page">
+        {% block admin_content %}{% endblock %}
+      </main>
+      <footer class="admin-footer"><span>© 2026 CivicOS. All rights reserved.</span><span>Built for better local governance</span></footer>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  <script>
+    function toggleAdminSidebar(){ document.body.classList.toggle('admin-sidebar-open'); }
+    function toggleAdminTheme(){
+      const root=document.documentElement;
+      const next=(root.dataset.adminTheme||'light')==='dark'?'light':'dark';
+      root.dataset.adminTheme=next;
+      try{localStorage.setItem('civicos-admin-theme',next)}catch(e){}
+    }
+    document.addEventListener('click', function(e){
+      if(window.innerWidth<=980 && document.body.classList.contains('admin-sidebar-open') && !e.target.closest('#adminSidebar') && !e.target.closest('.admin-menu-button')) document.body.classList.remove('admin-sidebar-open');
+    });
+  </script>
+  {% block admin_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Citizen Notifications · CivicOS{% endblock %}
+{% block content %}
+<main class="page-shell notification-center-page">
+  <div class="page-title recovery-title">
+    <span class="section-label">Citizen Update Loop</span>
+    <h1>{{ t('notification_center') }}</h1>
+    <p>{{ t('notification_help') }} Enter the same identity details used when the complaint was filed.</p>
+  </div>
+
+  <section class="recovery-search-card notification-lookup-card">
+    <form method="post" class="recovery-form">
+      <label><span>{{ t('citizen_name') }}</span><input name="citizen_name" autocomplete="name" required placeholder="{{ t('citizen_name') }}"></label>
+      <label><span>{{ t('phone_number') }}</span><input name="phone" inputmode="tel" autocomplete="tel" required placeholder="{{ t('phone_number') }}"></label>
+      <button class="btn primary" type="submit">◉ {{ t('my_updates') }}</button>
+    </form>
+    <div class="notification-channel-note"><b>Notification channels</b><span>In-app updates are always stored.</span><span>Browser alerts work from the tracking page when permitted.</span><span>Email is sent only when SMTP is configured and an email was provided.</span></div>
+  </section>
+
+  {% if searched %}
+  <section class="citizen-notification-dashboard">
+    <div class="notification-summary-card">
+      <div><span class="section-label">Matched Complaints</span><b>{{ complaints|length }}</b><small>complaints linked to this citizen</small></div>
+      <a href="/find-complaint">{{ t('find_complaint') }} →</a>
+    </div>
+
+    {% if updates %}
+    <div class="notification-center-list">
+      {% for n in updates %}
+      <article class="notification-center-item {{ n.kind }}">
+        <span class="notification-type-dot"></span>
+        <div class="notification-center-copy"><small>Complaint #{{ n.complaint_id }}</small><h3>{{ n.title }}</h3><p>{{ n.message }}</p><time>{{ display_time(n.created_at) }}</time></div>
+        <a class="btn light" href="/track?cid={{ n.complaint_id }}">Track →</a>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state-card compact"><span>◉</span><h3>{{ t('no_notifications') }}</h3><p>New status, worker assignment and SLA updates will appear here automatically.</p></div>
+    {% endif %}
+  </section>
+  {% endif %}
+</main>
+{% endblock %}
