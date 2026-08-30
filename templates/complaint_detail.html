@@ -77,6 +77,19 @@
 
 
 
+      {% if trust_assessment %}
+      <section class="complaint-trust-panel {{ 'quarantined' if trust_assessment.public_visibility == 'Quarantined' else '' }}">
+        <div class="complaint-trust-head"><span>◈</span><div><small>Civic Trust Review</small><b>{{ trust_assessment.reviewer_status }}</b></div>{% if session.get('admin') %}<em class="trust-risk-score {{ trust_tone(trust_assessment.risk_label) }}">{{ trust_assessment.risk_score }}</em>{% endif %}</div>
+        {% if session.get('admin') %}
+          <p><b>{{ trust_assessment.risk_label }}</b> · Public visibility: {{ trust_assessment.public_visibility }}. This score only prioritizes verification; it is not a truth verdict.</p>
+          <ul>{% for signal in trust_assessment.signals_json|from_json %}<li>{{ signal }}</li>{% endfor %}</ul>
+          <form method="post" action="{{ url_for('admin_trust_complaint_review', cid=comp.id) }}" class="complaint-trust-review-form"><select name="decision"><option>Needs Review</option><option>Cleared</option><option>Coordinated Abuse</option><option>False Submission</option></select><input name="review_note" placeholder="Authority evidence / reason"><button class="btn primary" type="submit">Save Trust Review</button></form>
+        {% else %}
+          <p>{% if trust_assessment.public_visibility == 'Quarantined' %}This case is temporarily withheld from public feeds while information integrity is reviewed. Operational processing continues.{% else %}CivicOS recorded an integrity precheck separately from identity verification and service status.{% endif %}</p>
+        {% endif %}
+      </section>
+      {% endif %}
+
       <!-- =======================================================
            COMPLAINT INFORMATION
            ======================================================= -->
@@ -411,6 +424,25 @@
 
 
 
+      <section class="case-intelligence-panel">
+        <div class="case-intelligence-head"><div><span class="section-label">Civic Intelligence</span><h3>What happens if this stays unresolved?</h3></div><strong class="impact-chip {{ complaint_intelligence.impact.label|lower }}">{{ complaint_intelligence.impact.label }} · {{ complaint_intelligence.impact.score }}/100</strong></div>
+        <div class="case-intelligence-grid">
+          <div><small>Estimated people exposed</small><b>{{ '{:,}'.format(complaint_intelligence.impact.estimated_people) }}</b></div>
+          <div><small>7-day extra cost</small><b>{{ format_inr(complaint_intelligence.delay.extra_cost) }}</b></div>
+          <div><small>Danger if delayed 7d</small><b>{{ complaint_intelligence.delay.danger_future }}/100</b></div>
+          <div><small>Cascade risk</small><b>{{ complaint_intelligence.cascade.probability }}%</b></div>
+        </div>
+        <div class="case-cascade">{% for node in complaint_intelligence.cascade.chain %}<span>{{ node }}</span>{% if not loop.last %}<i>→</i>{% endif %}{% endfor %}</div>
+        {% if session.get('admin') %}<a class="btn ghost-dark" href="{{ url_for('admin_intelligence') }}">Investigate in Civic Intelligence →</a>{% endif %}
+      </section>
+
+      <section class="case-proof-panel">
+        <div><span class="section-label">Proof of Resolution</span><h3>{{ proof.status }}</h3><p>Evidence checks are transparent and citizen confirmation closes the accountability loop.</p></div>
+        <div class="proof-score-ring"><b>{{ proof.score }}</b><span>/100</span></div>
+        {% if proof.visual_change_percent is not none %}<div class="proof-visual-signal"><span>Visual change signal</span><b>{{ proof.visual_change_percent }}%</b><small>{{ proof.image_quality }} capture quality · decision support only</small></div>{% endif %}
+        <ul>{% for name,state in proof.checks %}<li><span>{{ name }}</span><b class="{{ state|lower|replace(' ','-') }}">{{ state }}</b></li>{% endfor %}</ul>
+      </section>
+
       <!-- =======================================================
            FEEDBACK
            ======================================================= -->
@@ -487,7 +519,14 @@
           </label>
           <label>After-work proof
             <input type="file" name="after_photo" accept="image/*">
+            <small class="field-help">Required before a complaint can be marked Resolved.</small>
           </label>
+          {% if reserve_guard_enabled %}
+          <label class="reserve-override-control">
+            <input type="checkbox" name="override_reserve" value="1">
+            <span><b>Authority reserve override</b><small>Use only when operationally justified. Routine assignments normally keep the department's final response team available{% if disaster_mode %}; Disaster Mode protects extra capacity{% endif %}.</small></span>
+          </label>
+          {% endif %}
           <button type="submit" class="btn primary">Save update</button>
         </form>
         <p class="one-task-policy-note">One active task per field team is enforced. Busy teams cannot be assigned another unresolved complaint.</p>

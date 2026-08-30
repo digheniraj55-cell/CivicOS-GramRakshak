@@ -1,0 +1,33 @@
+CivicOS Unified Merge Validation — 30 Aug 2026
+
+Source feature sets merged:
+1) Citizen email OTP / Civic Account / worker authentication / authority verification / resolution feedback / accountability / Civic Voice / public intelligence.
+2) Government assets / public asset view / asset maintenance / contractors / procurement & inventory / finance / blackout recovery.
+
+Validation results:
+- Python AST parse: PASS
+- Python py_compile: PASS
+- Project preflight: READY
+- Jinja templates parsed: PASS (49 templates)
+- Template url_for endpoint scan: PASS (no missing endpoints)
+- Original route union: PASS (all routes from both ZIPs retained)
+- Merged route count: 116 (115 source-union routes + 1 repaired asset badge route)
+- Fresh SQLite schema simulation: PASS
+- Citizen OTP/account tables: PASS
+- Worker account seed + role-boundary schema: PASS
+- Asset tables and demo asset seed: PASS
+- Contractor tables: PASS
+- Procurement/inventory tables: PASS
+- Finance tables: PASS
+- Blackout/recovery tables: PASS
+- Complaint schema contains both citizen-resolution fields and asset_id: PASS
+- Asset-linked complaint simulation: PASS
+- One active executing task per worker invariant: PASS
+- JavaScript syntax check: PASS
+
+Important integration repairs:
+- /report now supports verified citizen accounts AND links complaints to an official asset when opened from an asset page.
+- Missing admin_asset_qr endpoint referenced by the supplied asset templates was repaired with /admin/assets/qr/<asset_uid>.
+- Admin navigation contains Assets, Contractors, Procurement, Finance, Recovery, Verification and Accountability together.
+- Public navigation contains Civic Account, Worker Login, Civic Intelligence and Public Assets together.
+- Asset CSS and translation additions were retained while adding the newer citizen/worker/accountability UI.

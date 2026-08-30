@@ -1,686 +1,200 @@
 {% extends 'base.html' %}
+{% block title %}My Worker Portal · CivicOS{% endblock %}
 
 {% block content %}
+<main class="worker-portal-page">
+  <section class="worker-portal-hero">
+    <div class="worker-identity-block">
+      <div class="worker-avatar-large" aria-hidden="true">{{ worker.name[:1]|upper }}</div>
+      <div>
+        <span class="section-label">Field Workforce Portal</span>
+        <h1>{{ worker.name }}</h1>
+        <p>{{ worker.id }} · {{ department_label(worker.department) }}</p>
+      </div>
+    </div>
+    <div class="worker-availability-card {% if current_task %}busy{% else %}available{% endif %}">
+      <span>{% if current_task %}Current field status{% else %}Assignment status{% endif %}</span>
+      <strong>{% if current_task %}On Task{% else %}Available{% endif %}</strong>
+      <small>{% if current_task %}Complaint #{{ current_task.id }} is your active assignment.{% else %}No active field task. Ready for authority assignment.{% endif %}</small>
+    </div>
+  </section>
 
-<main class="page-shell worker-dashboard-shell">
+  <section class="worker-kpi-grid" id="performance">
+    <article><span>Assigned history</span><b>{{ stats.total }}</b><small>Total tasks in your record</small></article>
+    <article><span>Active now</span><b>{{ stats.active }}</b><small>One-task policy enforced</small></article>
+    <article><span>Completed</span><b>{{ stats.done }}</b><small>Authority-approved closures</small></article>
+    <article><span>QA pending</span><b>{{ stats.awaiting_review }}</b><small>Waiting for admin verification</small></article>
+    <article class="worker-score-kpi"><span>Performance</span><b>{{ performance.performance_score if performance else '—' }}{% if performance %}<em>/100</em>{% endif %}</b><small>{{ performance.performance_band if performance else 'Benchmark pending' }}</small></article>
+  </section>
 
-
-  <!-- =========================================================
-       WORKER HERO
-       ========================================================= -->
-
-  <div class="dept-hero worker-hero">
-
-    <div>
-
-      <span class="section-label">
-        {{ t("worker_assignment_dashboard") }}
-      </span>
-
-
-      <h1>
-        {{ worker.id }} · {{ worker.name }}
-      </h1>
-
-
-      <p>
-        {{ department_label(worker.department) }}
-        {{ t("worker_task_queue_intro") }}
-      </p>
+  <section class="worker-current-section" id="current-task">
+    <div class="worker-section-heading">
+      <div>
+        <span class="section-label">Current Assignment</span>
+        <h2>Field work console</h2>
+        <p>Only your authenticated worker account can update this assignment.</p>
+      </div>
       {% if current_task %}
-      <div class="worker-policy-banner busy">● {{ t("busy") }} · {{ t("current_assignment") }} #{{ current_task.id }} · {{ current_task.title }}</div>
+      <span class="worker-live-pill">● Active task #{{ current_task.id }}</span>
       {% else %}
-      <div class="worker-policy-banner available">● {{ t("available") }} · {{ t("one_task_policy") }} · ready for automatic queue assignment</div>
+      <span class="worker-ready-pill">● Ready for assignment</span>
       {% endif %}
-
     </div>
 
-
-
-    <div class="hero-button-stack">
-
-
-      <a
-        href="/workers"
-        class="btn light"
-      >
-        {{ t("all_workers") }}
-      </a>
-
-
-      <a
-        href="/admin"
-        class="btn ghost-dark"
-      >
-        {{ t("command_center") }}
-      </a>
-
-
-    </div>
-
-  </div>
-
-
-
-  <!-- =========================================================
-       WORKER STATS
-       ========================================================= -->
-
-  <section class="stats-grid">
-
-
-    <div class="stat-card">
-
-      <span>
-        {{ t("total_tasks") }}
-      </span>
-
-      <b>
-        {{ stats.total }}
-      </b>
-
-    </div>
-
-
-
-    <div class="stat-card yellow">
-
-      <span>
-        {{ t("active") }}
-      </span>
-
-      <b>
-        {{ stats.active }}
-      </b>
-
-    </div>
-
-
-
-    <div class="stat-card blue">
-
-      <span>
-        {{ t("completed") }}
-      </span>
-
-      <b>
-        {{ stats.done }}
-      </b>
-
-    </div>
-
-
-
-    <div class="stat-card red">
-
-      <span>
-        {{ t("sla_escalated_title") }}
-      </span>
-
-      <b>
-        {{ stats.escalated }}
-      </b>
-
-    </div>
-
-
-  </section>
-
-
-
-  <!-- =========================================================
-       TASK FILTER TOOLBAR
-       ========================================================= -->
-
-  <section class="worker-toolbar panel">
-
-
-    <div>
-
-      <span class="section-label">
-        {{ t("my_task_queue") }}
-      </span>
-
-
-      <h2>
-        {{ t("assigned_field_work") }}
-      </h2>
-
-
-      <p>
-        {{ t("worker_priority_instruction") }}
-        Active work is intentionally capped at one complaint. Resolved items remain below as field history.
-      </p>
-
-    </div>
-
-
-
-    <div class="task-filter-tabs">
-
-
-      <!-- ALL -->
-
-      <button
-        type="button"
-        class="task-filter active"
-        data-task-filter="all"
-      >
-
-        {{ t("all") }}
-        {{ stats.total }}
-
-      </button>
-
-
-
-      <!-- ACTIVE -->
-
-      <button
-        type="button"
-        class="task-filter"
-        data-task-filter="active"
-      >
-
-        {{ t("active") }}
-        {{ stats.active }}
-
-      </button>
-
-
-
-      <!-- HIGH PRIORITY -->
-
-      <button
-        type="button"
-        class="task-filter"
-        data-task-filter="priority"
-      >
-
-        {{ t("high_priority") }}
-        {{ stats.high_priority }}
-
-      </button>
-
-
-
-      <!-- ESCALATED -->
-
-      <button
-        type="button"
-        class="task-filter"
-        data-task-filter="escalated"
-      >
-
-        {{ t("escalated") }}
-        {{ stats.escalated }}
-
-      </button>
-
-
-
-      <!-- RESOLVED -->
-
-      <button
-        type="button"
-        class="task-filter"
-        data-task-filter="resolved"
-      >
-
-        {{ t("resolved") }}
-        {{ stats.done }}
-
-      </button>
-
-
-    </div>
-
-  </section>
-
-
-
-  <!-- =========================================================
-       TASK GRID
-       ========================================================= -->
-
-  <section class="task-grid worker-task-grid">
-
-
-  {% for task in tasks %}
-
-
-    <article
-      class="
-        task-card
-        worker-task-card
-        {% if task.escalated and task.status != 'Resolved' %}
-        urgent
-        {% endif %}
-      "
-      data-task-status="{{ task.status }}"
-      data-task-priority="{{ task.priority }}"
-      data-task-escalated="
-        {{ 1 if task.escalated and task.status != 'Resolved' else 0 }}
-      "
-    >
-
-
-      <!-- =====================================================
-           TASK HEADER
-           ===================================================== -->
-
-      <div class="task-card-head">
-
-
-        <div>
-
-          <span class="section-label">
-
-            {{ t("complaint") }}
-            #{{ task.id }}
-
-          </span>
-
-
-          <h3>
-            {{ task.title }}
-          </h3>
-
-        </div>
-
-
-
-        <div
-          class="
-            priority-score
-            {% if task.priority >= 70 %}
-            priority-high
-            {% endif %}
-          "
-        >
-
-
-          <small>
-            {{ t("priority") }}
-          </small>
-
-
-          <b>
-            {{ task.priority }}
-          </b>
-
-
-          <span>
-            /100
-          </span>
-
-
-        </div>
-
-
-      </div>
-
-
-
-      <!-- =====================================================
-           DESCRIPTION
-           ===================================================== -->
-
-      <p>
-        {{ task.description }}
-      </p>
-
-
-
-      <!-- =====================================================
-           STATUS BADGES
-           ===================================================== -->
-
-      <div class="badge-row">
-
-
-        <span>
-          {{ status_label(task.status) }}
-        </span>
-
-
-        <span>
-          {{ task.ward }}
-        </span>
-
-
-        <span
-          class="
-            sla-pill
-            {{ sla_label(task)|lower|replace(' ','-') }}
-          "
-        >
-
-          SLA:
-          {{ sla_label(task) }}
-
-        </span>
-
-
-      </div>
-
-
-
-      <!-- =====================================================
-           TASK INFORMATION
-           ===================================================== -->
-
-      <div class="worker-task-info">
-
-
-        <!-- LOCATION -->
-
-        <div>
-
-          <small>
-            {{ t("location") }}
-          </small>
-
-
-          <b>
-
-            {% if task.address %}
-
-              {{ task.address }}
-
-            {% else %}
-
-              {{ task.location }},
-              {{ task.village }}
-
-            {% endif %}
-
-          </b>
-
-        </div>
-
-
-
-        <!-- SLA DEADLINE -->
-
-        <div>
-
-          <small>
-            {{ t("sla_deadline") }}
-          </small>
-
-
-          <b>
-            {{ display_time(task.sla_deadline) }}
-          </b>
-
-        </div>
-
-
-      </div>
-
-
-
-      <!-- =====================================================
-           BEFORE / AFTER EVIDENCE
-           ===================================================== -->
-
-      <div class="worker-evidence-strip">
-
-
-        <!-- BEFORE -->
-
-        <div>
-
-
-          {% if task.before_photo %}
-
-
-          <img
-            src="{{ url_for(
-              'static',
-              filename='uploads/' + task.before_photo
-            ) }}"
-            alt="{{ t('before_evidence') }}"
-          >
-
-
-          {% else %}
-
-
-          <div class="worker-empty-photo">
-
-            {{ t("before_proof_pending") }}
-
+    {% if current_task %}
+    <article class="worker-current-card">
+      <div class="worker-current-main">
+        <div class="worker-current-title-row">
+          <div>
+            <span class="worker-case-number">Complaint #{{ current_task.id }}</span>
+            <h2>{{ current_task.title }}</h2>
           </div>
-
-
-          {% endif %}
-
-
-          <small>
-            {{ t("before") }}
-          </small>
-
-
-        </div>
-
-
-
-        <!-- AFTER -->
-
-        <div>
-
-
-          {% if task.after_photo %}
-
-
-          <img
-            src="{{ url_for(
-              'static',
-              filename='uploads/' + task.after_photo
-            ) }}"
-            alt="{{ t('after_evidence') }}"
-          >
-
-
-          {% else %}
-
-
-          <div class="worker-empty-photo">
-
-            {{ t("after_proof_pending") }}
-
+          <div class="worker-priority-chip {% if current_task.priority >= 70 %}high{% endif %}">
+            <small>Priority</small><b>{{ current_task.priority }}</b><span>/100</span>
           </div>
-
-
-          {% endif %}
-
-
-          <small>
-            {{ t("after") }}
-          </small>
-
-
         </div>
 
+        <div class="worker-status-row">
+          <span>{{ status_label(current_task.status) }}</span>
+          <span>{{ current_task.ward or 'Ward not set' }}</span>
+          <span class="sla-pill {{ sla_label(current_task)|lower|replace(' ','-') }}">SLA: {{ sla_label(current_task) }}</span>
+        </div>
 
+        <p class="worker-current-description">{{ current_task.description }}</p>
+
+        <div class="worker-detail-grid">
+          <div><small>Location</small><b>{% if current_task.address %}{{ current_task.address }}{% else %}{{ current_task.location }}, {{ current_task.village }}{% endif %}</b></div>
+          <div><small>SLA deadline</small><b>{{ display_time(current_task.sla_deadline) }}</b></div>
+          <div><small>Department</small><b>{{ department_label(current_task.department) }}</b></div>
+          <div><small>Assigned team</small><b>{{ worker.id }}</b></div>
+        </div>
       </div>
 
+      <div class="worker-proof-grid">
+        <figure>
+          {% if current_task.before_photo %}
+          <img src="{{ url_for('static', filename='uploads/' + current_task.before_photo) }}" alt="Before-work evidence">
+          {% else %}
+          <div class="worker-proof-placeholder">No before photo</div>
+          {% endif %}
+          <figcaption>Before evidence</figcaption>
+        </figure>
+        <figure>
+          {% if current_task.after_photo %}
+          <img src="{{ url_for('static', filename='uploads/' + current_task.after_photo) }}" alt="After-work evidence">
+          {% else %}
+          <div class="worker-proof-placeholder">Upload after-work proof below</div>
+          {% endif %}
+          <figcaption>After evidence</figcaption>
+        </figure>
+      </div>
 
-
-      <!-- =====================================================
-           WORKER UPDATE FORM
-           ===================================================== -->
-
-      {% if task.status != 'Resolved' %}
-      <form
-        class="worker-form worker-update-form"
-        method="post"
-        action="/worker/update/{{ task.id }}"
-        enctype="multipart/form-data"
-      >
+      {% if worker_view %}
+      <form class="worker-action-panel" method="post" action="{{ url_for('worker_update', cid=current_task.id) }}" enctype="multipart/form-data">
         <input type="hidden" name="worker_id" value="{{ worker.id }}">
-
-
-        <!-- STATUS -->
-
-        <label>
-
-
-          <small>
-            {{ t("status") }}
-          </small>
-
-
-          <select name="status">
-
-
-            {% for status_name in
-            ['Assigned','In Progress','Resolved'] %}
-
-
-            <option
-              value="{{ status_name }}"
-              {% if task.status == status_name %}
-              selected
-              {% endif %}
-            >
-
-              {{ status_label(status_name) }}
-
-            </option>
-
-
-            {% endfor %}
-
-
-          </select>
-
-
-        </label>
-
-
-
-        <!-- WORK NOTE -->
-
-        <label>
-
-
-          <small>
-            {{ t("work_note") }}
-          </small>
-
-
-          <input
-            name="admin_note"
-            placeholder="{{ t('action_taken_placeholder') }}"
-            value="{{ task.admin_note or '' }}"
-          >
-
-
-        </label>
-
-
-
-        <!-- AFTER PHOTO -->
-
-        <label>
-
-
-          <small>
-            {{ t("after_photo_proof") }}
-          </small>
-
-
-          <input
-            type="file"
-            name="after_photo"
-            accept="image/*"
-          >
-
-
-        </label>
-
-
-
-        <!-- SAVE -->
-
-        <button class="btn primary">
-
-          {{ t("save_task_update") }}
-
-        </button>
-
-
+        <div class="worker-action-head">
+          <div><span class="section-label">Update Field Work</span><h3>Record progress securely</h3></div>
+          <span>Worker-only action</span>
+        </div>
+        <div class="worker-action-grid">
+          <label>
+            <small>Status</small>
+            <select name="status">
+              {% for status_name in ['Assigned','In Progress','Resolved'] %}
+              <option value="{{ status_name }}" {% if current_task.status == status_name %}selected{% endif %}>{{ 'Submit Completion for Admin Review' if status_name == 'Resolved' else status_label(status_name) }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="worker-note-field">
+            <small>Work note</small>
+            <input name="admin_note" placeholder="Describe the work completed or progress made" value="{{ current_task.admin_note or '' }}">
+          </label>
+          <label>
+            <small>After-work photo</small>
+            <input type="file" name="after_photo" accept="image/*">
+          </label>
+          <button class="btn primary worker-save-button" type="submit">Save Task Update</button>
+        </div>
+        <p class="worker-action-hint">Selecting <b>Submit Completion for Admin Review</b> does not close the case. Authority QA must approve the proof before the citizen receives the resolution-feedback email.</p>
       </form>
       {% else %}
-      <div class="resolved-history-note">
-        <strong>Resolved history</strong>
-        <span>This completed task is read-only. The team is available for the next queued complaint.</span>
-      </div>
+      <div class="worker-admin-readonly"><b>Admin view · read only</b><span>Worker status, notes and evidence can only be submitted from the authenticated Worker Portal.</span></div>
       {% endif %}
 
-
-
-      <!-- =====================================================
-           FULL COMPLAINT
-           ===================================================== -->
-
-      <a
-        class="task-detail-link"
-        href="/complaint/{{ task.id }}"
-      >
-
-        {{ t("open_complete_complaint_timeline") }}
-        →
-
-      </a>
-
-
+      <a class="worker-open-timeline" href="{{ url_for('complaint_detail', cid=current_task.id) }}">Open complete complaint timeline →</a>
     </article>
-
-
-
-  {% else %}
-
-
-    <!-- =======================================================
-         EMPTY TASK STATE
-         ======================================================= -->
-
-    <div class="empty-task-state panel full">
-
-
-      <h2>
-        {{ t("no_tasks_assigned") }}
-      </h2>
-
-
-      <p>
-        {{ t("worker_no_assigned_complaints") }}
-      </p>
-
-
-      <a
-        class="btn light"
-        href="/admin#complaints"
-      >
-
-        {{ t("assign_from_command_center") }}
-
-      </a>
-
-
+    {% else %}
+    <div class="worker-no-task-card">
+      <div class="worker-no-task-icon">✓</div>
+      <h2>No active assignment</h2>
+      <p>You have completed your current field work or no task has been assigned yet. CivicOS will show the next authority assignment here automatically.</p>
+      <span class="worker-ready-pill">Available for next civic task</span>
     </div>
-
-
-  {% endfor %}
-
-
+    {% endif %}
   </section>
 
+  {% if performance %}
+  <section class="worker-performance-card">
+    <div class="worker-performance-score">
+      <span class="section-label">Performance Benchmark</span>
+      <div><b>{{ performance.performance_score }}</b><span>/100</span></div>
+      <strong>{{ performance.performance_band }}</strong>
+      <small>Balanced across service quality, SLA discipline and citizen outcomes.</small>
+    </div>
+    <div class="worker-performance-grid">
+      <div><small>Citizen rating</small><b>{{ performance.avg_rating if performance.rating_count else '—' }}{% if performance.rating_count %}/5{% endif %}</b></div>
+      <div><small>SLA score</small><b>{{ performance.sla_score }}%</b></div>
+      <div><small>Proof quality</small><b>{{ performance.proof_score }}%</b></div>
+      <div><small>Reopen cases</small><b>{{ performance.reopen_count }}</b></div>
+      <div><small>QA pending</small><b>{{ performance.awaiting_review }}</b></div>
+      <div><small>Incentive status</small><b>{{ 'Eligible 🏆' if performance.incentive_eligible else 'Not yet eligible' }}</b></div>
+    </div>
+  </section>
+  {% endif %}
 
+  <section class="worker-history-section" id="task-history">
+    <div class="worker-section-heading worker-history-heading">
+      <div>
+        <span class="section-label">Task History</span>
+        <h2>Previous & QA-pending work</h2>
+        <p>Read-only history keeps field work transparent without cluttering your active console.</p>
+      </div>
+      <div class="task-filter-tabs worker-history-filters">
+        <button type="button" class="task-filter active" data-task-filter="all">All {{ stats.total - stats.active }}</button>
+        <button type="button" class="task-filter" data-task-filter="resolved">Resolved {{ stats.done }}</button>
+      </div>
+    </div>
+
+    <div class="worker-history-grid">
+      {% set ns = namespace(count=0) %}
+      {% for task in tasks %}
+        {% if not current_task or task.id != current_task.id %}
+        {% set ns.count = ns.count + 1 %}
+        <article class="worker-history-card worker-task-card" data-task-status="{{ task.status }}" data-task-priority="{{ task.priority }}" data-task-escalated="{{ 1 if task.escalated and task.status != 'Resolved' else 0 }}">
+          <div class="worker-history-card-head">
+            <div><span>Complaint #{{ task.id }}</span><h3>{{ task.title }}</h3></div>
+            <span class="worker-history-status {% if task.status == 'Resolved' %}resolved{% else %}pending{% endif %}">{{ status_label(task.status) }}</span>
+          </div>
+          <p>{{ task.description }}</p>
+          <div class="worker-history-meta">
+            <span>📍 {{ task.ward or task.location or 'Location recorded' }}</span>
+            <span>Priority {{ task.priority }}/100</span>
+            <span>SLA: {{ sla_label(task) }}</span>
+          </div>
+          {% if task.status == 'Awaiting Admin Verification' %}
+          <div class="worker-qa-note"><b>Authority QA pending</b><span>Your completion proof is awaiting final authority review.</span></div>
+          {% elif task.status == 'Resolved' %}
+          <div class="worker-qa-note resolved"><b>Authority approved</b><span>Case is closed; citizen feedback contributes to your benchmark.</span></div>
+          {% endif %}
+          <a href="{{ url_for('complaint_detail', cid=task.id) }}">View timeline →</a>
+        </article>
+        {% endif %}
+      {% endfor %}
+
+      {% if ns.count == 0 %}
+      <div class="worker-history-empty"><b>No previous tasks yet.</b><span>Your completed and authority-review tasks will appear here.</span></div>
+      {% endif %}
+    </div>
+  </section>
 </main>
-
 {% endblock %}

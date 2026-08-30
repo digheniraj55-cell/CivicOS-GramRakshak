@@ -1,0 +1,376 @@
+{% extends 'admin_base.html' %}
+{% block title %}{{ asset.name }} ({{ asset.asset_uid }}) · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="admin-page-heading">
+  <div>
+    <a href="{{ url_for('admin_assets') }}" class="back-link">← Back to Government Assets Registry</a>
+    <h1>{{ cat_info.icon or '🏛️' }} {{ asset.name }}</h1>
+    <p><b>{{ asset.asset_uid }}</b> · {{ cat_info.name }} · {{ asset.ward }}, {{ asset.village }}</p>
+  </div>
+  <div class="heading-actions">
+    <a class="admin-secondary-btn" href="{{ url_for('admin_asset_qr', asset_uid=asset.asset_uid) }}" target="_blank"><span>🏷️</span> Print QR Badge</a>
+    <button class="admin-secondary-btn" type="button" onclick="openModal('editAssetModal')"><span>✏️</span> Edit Details</button>
+    <button class="admin-primary-btn" type="button" onclick="openModal('logMaintModal')"><span>🛠️</span> Log Maintenance</button>
+  </div>
+</div>
+
+<!-- 360° Profile Header Banner -->
+<section class="asset-profile-banner">
+  <div class="asset-banner-main">
+    <div class="asset-badge-large">
+      <div class="qr-thumbnail-wrap">
+        {{ qr_svg|safe }}
+      </div>
+      <div>
+        <span class="status-pill status-{{ asset.status|lower|replace(' ', '-')|replace('/', '') }}">
+          {{ asset.status }}
+        </span>
+        <h2 style="margin:6px 0 2px;">{{ asset.name }}</h2>
+        <div class="text-muted" style="font-size:13px;">📍 {{ asset.location }} · {{ asset.ward }}</div>
+      </div>
+    </div>
+
+    <div class="asset-health-stats">
+      <div class="health-stat-box">
+        <small>Asset Condition Index</small>
+        <b style="color: {{ condition.color }}; font-size:24px;">{{ condition.score }}%</b>
+        <span style="color: {{ condition.color }}; font-size:12px; font-weight:bold;">{{ condition.label }}</span>
+      </div>
+      <div class="health-stat-box">
+        <small>Balance Sheet Valuation</small>
+        <b style="font-size:20px;">{{ format_inr(asset.estimated_value) }}</b>
+        <span class="text-muted" style="font-size:11px;">Replacement: {{ format_inr(asset.replacement_cost) }}</span>
+      </div>
+      <div class="health-stat-box">
+        <small>Preventive Maintenance</small>
+        <b class="{{ maint_status.class }}" style="font-size:16px;">{{ maint_status.status }}</b>
+        <span class="text-muted" style="font-size:11px;">Last: {{ asset.last_inspection_date or '—' }}</span>
+      </div>
+      <div class="health-stat-box">
+        <small>Incident History</small>
+        <b style="font-size:20px; color: {{ '#ef4444' if linked_complaints|length > 0 else '#10b981' }};">{{ linked_complaints|length }}</b>
+        <span class="text-muted" style="font-size:11px;">Complaints linked</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="asset-detail-grid">
+  <!-- Left Column: Specs & Location -->
+  <div class="asset-detail-col">
+    <!-- Technical Specifications Card -->
+    <section class="admin-card">
+      <header class="admin-card-head">
+        <div>
+          <h2>Technical Specifications</h2>
+          <p>{{ cat_info.name }} category engineering parameters.</p>
+        </div>
+      </header>
+      <div class="specs-table-wrap">
+        <table class="admin-simple-table">
+          <tbody>
+            <tr><td><b>Department In-Charge</b></td><td>{{ department_label(asset.department) }}</td></tr>
+            <tr><td><b>Assigned Maintenance Crew</b></td><td>{{ worker_label(asset.assigned_worker) if asset.assigned_worker else 'General Department Pool' }}</td></tr>
+            <tr><td><b>Installation / Commission Date</b></td><td>{{ asset.install_date or '—' }}</td></tr>
+            <tr><td><b>Next Scheduled Inspection</b></td><td>{{ asset.next_maintenance_due or '—' }}</td></tr>
+            {% for k, v in specs.items() %}
+              {% set field_label = k|replace('_', ' ')|title %}
+              <tr>
+                <td><b>{{ field_label }}</b></td>
+                <td><b>{{ v }}</b></td>
+              </tr>
+            {% endfor %}
+            {% if asset.notes %}
+              <tr><td><b>Operational Notes</b></td><td>{{ asset.notes }}</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Geolocation Mini-Map -->
+    <section class="admin-card">
+      <header class="admin-card-head">
+        <div>
+          <h2>Asset Geolocation & Coordinates</h2>
+          <p>Latitude: {{ asset.latitude or '—' }}, Longitude: {{ asset.longitude or '—' }}</p>
+        </div>
+      </header>
+      <div id="assetMiniMap" style="height: 220px; width: 100%; border-radius: 8px;"></div>
+    </section>
+  </div>
+
+  <!-- Right Column: Maintenance & Linked Complaints -->
+  <div class="asset-detail-col">
+    <!-- Maintenance History -->
+    <section class="admin-card">
+      <header class="admin-card-head">
+        <div>
+          <h2>Preventive Maintenance & Inspection Log</h2>
+          <p>Chronological history of audits, repairs, and service checks.</p>
+        </div>
+        <button type="button" class="admin-primary-btn small-btn" onclick="openModal('logMaintModal')">＋ Log Activity</button>
+      </header>
+      <div class="timeline-stream">
+        {% for log in maintenance_logs %}
+        <div class="timeline-stream-item">
+          <div class="timeline-stream-dot" style="background:#2563eb;"></div>
+          <div class="timeline-stream-content">
+            <div class="timeline-stream-header">
+              <b>{{ log.maintenance_type }}</b>
+              <small class="text-muted">{{ log.performed_at }}</small>
+            </div>
+            <p>{{ log.notes }}</p>
+            <div class="timeline-stream-meta">
+              <span>Technician: <b>{{ log.performed_by or 'Field Crew' }}</b></span>
+              {% if log.cost > 0 %}<span>Expense: <b>{{ format_inr(log.cost) }}</b></span>{% endif %}
+              {% if log.condition_after %}<span>Resulting Health: <b>{{ log.condition_after }}%</b></span>{% endif %}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <p>No maintenance logs recorded yet.</p>
+          <button class="admin-secondary-btn" type="button" onclick="openModal('logMaintModal')">Log First Inspection</button>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Linked Citizen Complaints -->
+    <section class="admin-card">
+      <header class="admin-card-head">
+        <div>
+          <h2>Linked Citizen Complaints ({{ linked_complaints|length }})</h2>
+          <p>Citizen grievances associated with failures on this asset.</p>
+        </div>
+        <button type="button" class="admin-secondary-btn small-btn" onclick="openModal('linkComplaintModal')">Attach Complaint</button>
+      </header>
+      <div class="simple-table-wrap">
+        <table class="admin-simple-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Complaint Title</th>
+              <th>Reported Date</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in linked_complaints %}
+            <tr>
+              <td>#{{ c.id }}</td>
+              <td><b>{{ c.title }}</b><small class="text-muted">{{ c.citizen_name or 'Citizen' }}</small></td>
+              <td><small>{{ c.created_at[:10] if c.created_at else '—' }}</small></td>
+              <td><span class="table-status">{{ c.status }}</span></td>
+              <td><a href="{{ url_for('complaint_detail', cid=c.id) }}" class="table-action">View →</a></td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state" style="padding:16px;">
+                  <span style="color:#10b981; font-weight:bold;">✓ No active failure complaints linked to this asset.</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- Log Maintenance Modal -->
+<div class="civic-modal" id="logMaintModal" style="display:none;">
+  <div class="civic-modal-dialog">
+    <div class="civic-modal-header">
+      <h3>🛠️ Log Maintenance / Inspection for {{ asset.asset_uid }}</h3>
+      <button type="button" class="close-modal-btn" onclick="closeModal('logMaintModal')">✕</button>
+    </div>
+    <form method="post" action="{{ url_for('admin_asset_maintenance', aid=asset.id) }}" class="civic-modal-form">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Maintenance Type *</label>
+          <select name="maintenance_type" required>
+            <option value="Routine Inspection">Routine Inspection & Testing</option>
+            <option value="Preventive Maintenance">Preventive Upkeep / Servicing</option>
+            <option value="Emergency Repair">Emergency Breakdown Repair</option>
+            <option value="Part Replacement">Component / Part Replacement</option>
+            <option value="Overhaul">Comprehensive Overhaul</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Performed By (Crew / Officer) *</label>
+          <input name="performed_by" value="{{ session.get('admin', 'Field Crew') }}" required>
+        </div>
+      </div>
+
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Updated Asset Status *</label>
+          <select name="status_after" required>
+            {% for st in asset_status_options %}
+              <option value="{{ st }}" {% if st == asset.status %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Resulting Condition Score (0-100)</label>
+          <input type="number" name="condition_after" value="{{ asset.condition_score }}" min="0" max="100" required>
+        </div>
+        <div class="form-group">
+          <label>Expenditure (₹ INR)</label>
+          <input type="number" name="cost" value="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Inspection Findings & Action Notes *</label>
+        <textarea name="notes" rows="3" required placeholder="Describe work performed, components replaced, or next steps..."></textarea>
+      </div>
+
+      <div class="civic-modal-footer">
+        <button type="button" class="admin-secondary-btn" onclick="closeModal('logMaintModal')">Cancel</button>
+        <button type="submit" class="admin-primary-btn">Record Maintenance Entry</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Asset Modal -->
+<div class="civic-modal" id="editAssetModal" style="display:none;">
+  <div class="civic-modal-dialog modal-lg">
+    <div class="civic-modal-header">
+      <h3>✏️ Edit Asset Details: {{ asset.asset_uid }}</h3>
+      <button type="button" class="close-modal-btn" onclick="closeModal('editAssetModal')">✕</button>
+    </div>
+    <form method="post" action="{{ url_for('admin_asset_edit', aid=asset.id) }}" class="civic-modal-form">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Asset Name *</label>
+          <input name="name" value="{{ asset.name }}" required>
+        </div>
+        <div class="form-group">
+          <label>Operational Status *</label>
+          <select name="status" required>
+            {% for st in asset_status_options %}
+              <option value="{{ st }}" {% if st == asset.status %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Ward *</label>
+          <input name="ward" value="{{ asset.ward }}" required>
+        </div>
+        <div class="form-group">
+          <label>Village *</label>
+          <input name="village" value="{{ asset.village }}" required>
+        </div>
+        <div class="form-group">
+          <label>Condition Score (0-100)</label>
+          <input type="number" name="condition_score" value="{{ asset.condition_score }}" min="0" max="100">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Exact Location / Landmark</label>
+        <input name="location" value="{{ asset.location }}" required>
+      </div>
+
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Valuation (₹ INR)</label>
+          <input type="number" name="estimated_value" value="{{ asset.estimated_value }}">
+        </div>
+        <div class="form-group">
+          <label>Assigned Crew</label>
+          <select name="assigned_worker">
+            <option value="">-- None --</option>
+            {% for w in workers %}
+              <option value="{{ w.id }}" {% if w.id == asset.assigned_worker %}selected{% endif %}>{{ w.id }} · {{ w.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Next Maintenance Date</label>
+          <input type="date" name="next_maintenance_due" value="{{ asset.next_maintenance_due }}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" rows="2">{{ asset.notes }}</textarea>
+      </div>
+
+      <div class="civic-modal-footer">
+        <button type="button" class="admin-secondary-btn" onclick="closeModal('editAssetModal')">Cancel</button>
+        <button type="submit" class="admin-primary-btn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Link Complaint Modal -->
+<div class="civic-modal" id="linkComplaintModal" style="display:none;">
+  <div class="civic-modal-dialog">
+    <div class="civic-modal-header">
+      <h3>🔗 Link Complaint to {{ asset.asset_uid }}</h3>
+      <button type="button" class="close-modal-btn" onclick="closeModal('linkComplaintModal')">✕</button>
+    </div>
+    <form method="post" action="{{ url_for('admin_asset_link_complaint', aid=asset.id) }}" class="civic-modal-form">
+      <div class="form-group">
+        <label>Select Complaint to Attach</label>
+        <select name="complaint_id" required>
+          {% for comp in available_complaints %}
+            <option value="{{ comp.id }}">#{{ comp.id }} - {{ comp.title }} ({{ comp.ward }}, {{ comp.status }})</option>
+          {% else %}
+            <option value="">No open complaints found in this department</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="civic-modal-footer">
+        <button type="button" class="admin-secondary-btn" onclick="closeModal('linkComplaintModal')">Cancel</button>
+        <button type="submit" class="admin-primary-btn">Link Complaint</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+  function initMiniMap() {
+    const el = document.getElementById('assetMiniMap');
+    if (!el) return;
+    const lat = {{ asset.latitude|default(18.7324) }};
+    const lon = {{ asset.longitude|default(73.6841) }};
+    
+    const map = L.map('assetMiniMap').setView([lat, lon], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const pinColor = '{{ condition.color }}';
+    const customIcon = L.divIcon({
+      className: 'asset-map-pin',
+      html: `<div style="background:${pinColor}; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.3); border:2px solid #fff; font-size:18px;">{{ cat_info.icon }}</div>`,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
+
+    L.marker([lat, lon], { icon: customIcon }).addTo(map).bindPopup('<b>{{ asset.name }}</b><br>{{ asset.location }}').openPopup();
+    L.circle([lat, lon], { radius: 100, color: pinColor, fillOpacity: 0.1 }).addTo(map);
+  }
+
+  function openModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'flex'; }
+  function closeModal(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+  document.addEventListener('DOMContentLoaded', initMiniMap);
+</script>
+{% endblock %}

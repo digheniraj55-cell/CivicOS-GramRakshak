@@ -9,6 +9,23 @@
   <article class="admin-metric"><i class="purple">◴</i><div><small>Avg. Resolution Time</small><b>{{ avg_resolution_days }}d</b><span>Across resolved cases</span></div></article>
 </section>
 
+<section class="intelligence-pulse admin-card">
+  <div class="intelligence-pulse-title"><span>✦</span><div><b>Civic Intelligence Pulse</b><small>From reactive complaint handling to predictive, preventive governance.</small></div></div>
+  <a href="{{ url_for('admin_intelligence') }}"><small>Civic Debt</small><b>{{ intelligence.debt.score }}/100</b><span>{{ intelligence.debt.label }}</span></a>
+  <a href="{{ url_for('admin_intelligence') }}"><small>Highest Risk</small><b>{{ intelligence.risks[0].risk if intelligence.risks else 0 }}%</b><span>{{ intelligence.risks[0].ward if intelligence.risks else 'No data' }}</span></a>
+  <a href="{{ url_for('admin_intelligence') }}"><small>Root-Cause Clusters</small><b>{{ intelligence.causal|length }}</b><span>connected patterns</span></a>
+  <a href="{{ url_for('admin_sweeps') }}"><small>Sweep Opportunities</small><b>{{ intelligence.sweeps|length }}</b><span>cross-department</span></a>
+  <a class="pulse-cta" href="{{ url_for('admin_intelligence') }}">Open Intelligence →</a>
+</section>
+
+<section class="trust-command-pulse admin-card">
+  <div><span class="trust-command-icon">◈</span><div><b>Civic Trust Watch</b><small>Rumor verification + coordinated fake-submission defense</small></div></div>
+  <a href="{{ url_for('admin_trust_center') }}"><small>Rumors awaiting review</small><b>{{ trust_summary.pending }}</b></a>
+  <a href="{{ url_for('admin_trust_center') }}"><small>High-risk submissions</small><b>{{ trust_summary.high_risk }}</b></a>
+  <a href="{{ url_for('admin_trust_center') }}"><small>Publicly quarantined</small><b>{{ trust_summary.quarantined }}</b></a>
+  <a class="pulse-cta" href="{{ url_for('admin_trust_center') }}">Open Trust Center →</a>
+</section>
+
 <section class="admin-command-grid">
   <article class="admin-card admin-map-card">
     <header class="admin-card-head"><div><h2>Civic Intelligence Map</h2><p>Live complaint positions from verified coordinates.</p></div><div class="map-head-actions"><span class="live-chip">● Live</span><select id="mapDepartmentFilter" onchange="applyMapFilters()"><option value="all">All Departments</option>{% for key,val in departments.items() %}<option value="{{ key }}">{{ val }}</option>{% endfor %}</select><select id="mapStatusFilter" onchange="applyMapFilters()"><option value="all">All Statuses</option>{% for status in status_order %}<option value="{{ status }}">{{ status }}</option>{% endfor %}</select></div></header>

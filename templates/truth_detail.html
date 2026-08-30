@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{{ bulletin.verdict }} · CivicOS Fact Check{% endblock %}
+{% block content %}
+<main class="truth-detail-page">
+  <a class="truth-back" href="{{ url_for('trust_center') }}">← Civic Trust Center</a>
+  <section class="truth-share-card {{ verdict_tone(bulletin.verdict) }}">
+    <div class="truth-share-head">
+      <div><span class="trust-verdict {{ verdict_tone(bulletin.verdict) }}">{{ bulletin.verdict }}</span>{% if bulletin.is_demo %}<em>HACKATHON DEMO BULLETIN</em>{% endif %}</div>
+      <span>Bulletin #TV-{{ bulletin.id }}</span>
+    </div>
+    <span class="section-label">CivicOS Authority Verification</span>
+    <h1>{{ bulletin.title }}</h1>
+    <div class="truth-claim"><small>Claim being checked</small><p>{{ bulletin.claim_summary }}</p></div>
+    <div class="truth-correction"><small>Verified correction / context</small><p id="truthCorrection">{{ bulletin.fact_text }}</p></div>
+    <dl class="truth-meta">
+      <div><dt>Topic</dt><dd>{{ trust_categories.get(bulletin.category,bulletin.category) }}</dd></div>
+      <div><dt>Authority source</dt><dd>{{ bulletin.official_source or 'CivicOS authority review' }}</dd></div>
+      <div><dt>Published</dt><dd>{{ display_time(bulletin.published_at) }}</dd></div>
+      <div><dt>Verification status</dt><dd>{{ bulletin.verdict }}</dd></div>
+    </dl>
+    {% if bulletin.evidence_url %}<a class="truth-source-link" href="{{ bulletin.evidence_url }}" target="_blank" rel="noopener noreferrer">Open primary authority source ↗</a>{% endif %}
+    <div class="truth-share-actions">
+      <button class="btn primary" type="button" onclick="copyTruth()">Copy verified correction</button>
+      <button class="btn light" type="button" onclick="shareTruthWhatsApp()">Share to WhatsApp</button>
+    </div>
+    <p class="truth-share-note">Share the correction, not a screenshot of the rumor. This keeps the authority context and current verdict attached.</p>
+  </section>
+
+  <section class="truth-related">
+    <div class="home-section-title"><span class="section-label">More checks</span><h2>Other verification bulletins</h2></div>
+    <div class="trust-bulletin-grid compact">
+      {% for b in related %}<a class="trust-bulletin-card" href="{{ url_for('truth_detail', bulletin_id=b.id) }}"><div class="trust-bulletin-top"><span class="trust-verdict {{ verdict_tone(b.verdict) }}">{{ b.verdict }}</span>{% if b.is_demo %}<em>DEMO</em>{% endif %}</div><h3>{{ b.title }}</h3><p>{{ b.fact_text }}</p><footer><span>{{ b.official_source or 'Authority review' }}</span><b>Open →</b></footer></a>{% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}
+<script>
+const civicTruthShare = {
+  verdict: {{ bulletin.verdict|tojson }},
+  claim: {{ bulletin.claim_summary|tojson }},
+  correction: {{ bulletin.fact_text|tojson }},
+  source: {{ (bulletin.official_source or 'CivicOS authority review')|tojson }}
+};
+function truthShareText(){
+  return `CivicOS verification: ${civicTruthShare.verdict}\n\nClaim: ${civicTruthShare.claim}\n\nCorrection: ${civicTruthShare.correction}\n\nSource: ${civicTruthShare.source}\n\n${window.location.href}`;
+}
+async function copyTruth(){
+  try{await navigator.clipboard.writeText(truthShareText()); alert('Verified correction copied.');}
+  catch(e){prompt('Copy this verified correction:', truthShareText());}
+}
+function shareTruthWhatsApp(){ window.open('https://wa.me/?text='+encodeURIComponent(truthShareText()),'_blank','noopener'); }
+</script>
+{% endblock %}

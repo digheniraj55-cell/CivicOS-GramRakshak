@@ -10,6 +10,71 @@ let civicLiveLocation = null;
 let civicLiveLayer = null;
 const CIVICOS_LOCATION_KEY = 'civicos-live-location-v2';
 
+
+/**
+ * Capture the best GPS fix available during a short observation window.
+ * A phone/laptop often returns a coarse first fix and a much more accurate
+ * second/third fix. Using watchPosition lets CivicOS keep the best reading
+ * instead of immediately accepting the first one.
+ *
+ * Signature intentionally mirrors getCurrentPosition(success, error, options)
+ * so citizen pages can use it without duplicating location logic.
+ */
+function getBestCivicPosition(successCallback,errorCallback,options={}){
+  if(!navigator.geolocation){
+    if(typeof errorCallback==='function') errorCallback({code:2,message:'Geolocation is not supported.',PERMISSION_DENIED:1,POSITION_UNAVAILABLE:2,TIMEOUT:3});
+    return;
+  }
+  const requestedTimeout=Math.max(6000,Number(options.timeout)||15000);
+  const targetAccuracy=Math.max(8,Number(options.targetAccuracy)||25);
+  const goodAccuracy=Math.max(targetAccuracy,50);
+  const startedAt=Date.now();
+  let best=null;
+  let lastError=null;
+  let settled=false;
+  let watchId=null;
+  let timer=null;
+
+  const cleanup=()=>{
+    if(timer) clearTimeout(timer);
+    if(watchId!==null){ try{ navigator.geolocation.clearWatch(watchId); }catch(_e){} }
+  };
+  const finishSuccess=()=>{
+    if(settled) return;
+    settled=true; cleanup();
+    if(best && typeof successCallback==='function') successCallback(best);
+  };
+  const finishError=(err)=>{
+    if(settled) return;
+    settled=true; cleanup();
+    if(typeof errorCallback==='function') errorCallback(err||lastError||{code:3,message:'Location timed out.',PERMISSION_DENIED:1,POSITION_UNAVAILABLE:2,TIMEOUT:3});
+  };
+
+  timer=setTimeout(()=> best ? finishSuccess() : finishError(lastError), requestedTimeout+600);
+  try{
+    watchId=navigator.geolocation.watchPosition(pos=>{
+      const accuracy=Number(pos?.coords?.accuracy);
+      if(!best || (Number.isFinite(accuracy) && accuracy < Number(best.coords.accuracy||Infinity))){
+        best=pos;
+      }
+      // Excellent fix: return immediately. A merely good fix gets a few seconds
+      // to improve further so a mobile browser can settle its GPS sensor.
+      if(Number.isFinite(accuracy) && accuracy<=targetAccuracy){
+        finishSuccess();
+      }else if(best && Date.now()-startedAt>=5500 && Number(best.coords.accuracy||Infinity)<=goodAccuracy){
+        finishSuccess();
+      }
+    },err=>{
+      lastError=err;
+      if(err && Number(err.code)===1) finishError(err); // permission denied cannot improve
+    },{
+      enableHighAccuracy: options.enableHighAccuracy!==false,
+      timeout: requestedTimeout,
+      maximumAge: Number.isFinite(Number(options.maximumAge))?Number(options.maximumAge):0,
+    });
+  }catch(err){ finishError(err); }
+}
+
 function getStoredCivicLocation(){
   try{
     const raw=localStorage.getItem(CIVICOS_LOCATION_KEY);
@@ -113,7 +178,7 @@ function refreshAdminLiveLocation(force=false){
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(async pos=>{
+  getBestCivicPosition(async pos=>{
     const lat=pos.coords.latitude, lon=pos.coords.longitude, accuracy=pos.coords.accuracy;
     const resolved=await reverseCivicLocation(lat,lon);
     const item={lat:Number(lat),lon:Number(lon),address:resolved.address,shortLabel:resolved.shortLabel,accuracy:Number(accuracy)||null,savedAt:Date.now()};
@@ -134,7 +199,7 @@ function getLocation(){
   if(!navigator.geolocation){ alert('Geolocation is not supported by this browser.'); return; }
   const button = document.querySelector('[onclick="getLocation()"]');
   if(button){ button.textContent='Getting location…'; button.disabled=true; }
-  navigator.geolocation.getCurrentPosition(pos=>{
+  getBestCivicPosition(pos=>{
     const lat=document.getElementById('lat');
     const lon=document.getElementById('lon');
     if(lat) lat.value=pos.coords.latitude.toFixed(6);
@@ -267,10 +332,12 @@ function renderFallbackMap(reason='Offline-safe map view'){
     const c=m.escalated?'#dc2626':colorForDepartment(m.department);
     return `<a class="fallback-map-dot" aria-label="Complaint ${m.id}: ${escapeHtml(m.title)}" title="#${m.id} ${escapeHtml(m.title)}" href="/complaint/${m.id}" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;background:${c}"><span>#${m.id}</span></a>`;
   }).join('');
+  const liveArea = civicLiveLocation || getStoredCivicLocation();
+  const areaLabel = liveArea ? adminLocationLabel(liveArea) : 'Live Civic Area';
   el.innerHTML=`<div class="fallback-map">
     <div class="fallback-map-grid"></div>
     <div class="fallback-road road-a"></div><div class="fallback-road road-b"></div><div class="fallback-road road-c"></div><div class="fallback-road road-d"></div>
-    <span class="fallback-place place-a">Kopargaon Area</span><span class="fallback-place place-b">Civic Ward Cluster</span>
+    <span class="fallback-place place-a">${escapeHtml(areaLabel)}</span><span class="fallback-place place-b">Civic Ward Cluster</span>
     ${dots}
     <div class="fallback-map-note"><b>Civic Intelligence Map</b><span>${escapeHtml(reason)} · complaint positions preserved from latitude / longitude</span></div>
   </div>`;

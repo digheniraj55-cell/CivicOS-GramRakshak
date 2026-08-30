@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}My Civic Account · CivicOS{% endblock %}
+{% block content %}
+<main class="page-shell civic-profile-page">
+  <div class="page-title"><span class="section-label">Civic Account</span><h1>My Civic Account</h1><p>Your account trust status, locality and civic participation history.</p></div>
+  <section class="profile-status-grid">
+    <article><small>Account Provider</small><b>{{ citizen.provider|title }}</b></article>
+    <article><small>Email Account</small><b>{{ 'Verified ✓' if citizen.email_verified else 'Verification pending' }}</b>{% if not citizen.email_verified %}<form method="post" action="{{ url_for('citizen_resend_verification') }}" class="profile-verify-form"><button class="text-action-button" type="submit">Send verification OTP</button></form>{% endif %}</article>
+    <article><small>Resident Status</small><b>{{ 'Resident Verified ✓' if citizen.resident_verified else 'Not government-verified' }}</b><small>Separate from email OTP verification</small></article>
+    <article><small>Cases Reported</small><b>{{ my_cases|length }}</b></article>
+  </section>
+  <div class="grid-2 profile-grid">
+    <form class="panel" method="post"><span class="section-label">Profile</span><h2>Locality details</h2><input name="full_name" value="{{ citizen.full_name or '' }}" placeholder="Full name" required><input value="{{ citizen.email or '' }}" disabled><input name="village" value="{{ citizen.village or '' }}" placeholder="Town / village"><input name="ward" value="{{ citizen.ward or '' }}" placeholder="Ward / area"><button class="btn primary">Save Profile</button></form>
+    <section class="panel"><span class="section-label">My Civic Cases</span><h2>Recent participation</h2>{% for c in my_cases %}<a class="profile-case-row" href="{{ url_for('track',cid=c.id) }}"><span>#{{ c.id }} · {{ c.title }}</span><b>{{ c.status }}</b></a>{% else %}<p>No civic cases reported from this account yet.</p>{% endfor %}</section>
+  </div>
+</main>
+{% endblock %}

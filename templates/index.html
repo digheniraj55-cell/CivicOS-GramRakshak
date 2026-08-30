@@ -17,6 +17,8 @@
         <a href="/find-complaint">{{ t('forgot_complaint_id') }}</a>
         <span>•</span>
         <a href="/notifications">{{ t('my_updates') }}</a>
+        <span>•</span>
+        <a href="{{ url_for('trust_center') }}">Verify a Rumor</a>
       </div>
     </div>
 
@@ -38,6 +40,25 @@
         <div><small>SLA Compliance</small><b>{{ stats.sla_compliance }}%</b><span>{{ stats.escalated }} currently escalated</span></div>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="home-trust-strip">
+  <div><span class="section-label">Civic Trust Layer</span><h2>Before you forward it, verify it.</h2><p>Paste a WhatsApp claim, scheme rumor, water/health alert or civic allegation. CivicOS checks published authority bulletins and clearly labels what is verified, false, misleading or still unverified.</p></div>
+  <a class="btn primary" href="{{ url_for('trust_center') }}">Open Trust Center →</a>
+</section>
+
+<section class="nearby-civic-section">
+  <div class="home-section-title"><span class="section-label">My Area · Civic Activity</span><h2>See what is happening around you</h2><p>Use your live location to discover nearby civic cases, support an issue once, check resolution status and verify completed work.</p></div>
+  <div class="nearby-civic-layout">
+    <div class="nearby-civic-main home-white-panel">
+      <div class="home-panel-head"><div><span class="section-label">Nearby</span><h2>Civic Activity Around Me</h2></div>{% if session.get('citizen_id') %}<button class="btn primary compact-btn" type="button" onclick="loadNearbyCivicActivity()">📍 Use My Location</button>{% else %}<a class="btn primary compact-btn" href="{{ url_for('citizen_login',next='/') }}">Sign in to use location</a>{% endif %}</div>
+      {% if session.get('citizen_id') %}<div id="nearbyCivicStatus" class="nearby-status">Location is used only to calculate nearby civic activity.</div><div id="nearbyCivicList" class="nearby-civic-list"><div class="nearby-placeholder">Choose <b>Use My Location</b> to load civic cases within 3 km.</div></div>{% else %}<div class="nearby-placeholder"><b>Authenticated Civic Account required.</b><p>Sign in to prevent duplicate upvotes and preserve one-person-one-action civic participation.</p><a href="{{ url_for('citizen_register') }}">Create Civic Account →</a></div>{% endif %}
+    </div>
+    <aside class="civic-news-column home-white-panel">
+      <div class="home-panel-head"><div><span class="section-label">Civic News</span><h2>Recent public updates</h2></div><a href="{{ url_for('transparency') }}">Public Board →</a></div>
+      <div class="civic-news-feed">{% for c in recent %}<a href="{{ url_for('track',cid=c.id) }}"><span>#{{ c.id }} · {{ c.ward }}</span><b>{{ c.title }}</b><small>{{ c.status }} · {{ display_time(c.updated_at) }}</small></a>{% else %}<p>No civic activity yet.</p>{% endfor %}</div>
+    </aside>
   </div>
 </section>
 
@@ -111,6 +132,21 @@
   </div>
 </section>
 
+<section class="home-prevention-layer">
+  <div class="home-section-title">
+    <span class="section-label">Civic Intelligence</span>
+    <h2>From reacting to complaints → preventing repeat failures</h2>
+    <p>CivicOS uses the operational history already created by citizens and field teams to surface explainable prevention signals for authorities.</p>
+  </div>
+  <div class="prevention-card-grid">
+    <article><span>01</span><h3>Connect Root Causes</h3><p>Nearby cross-department symptoms become probable causal clusters instead of isolated tickets.</p></article>
+    <article><span>02</span><h3>Forecast Cost & Risk</h3><p>Compare act-now versus wait scenarios, civic debt, cascade risk and ward health.</p></article>
+    <article><span>03</span><h3>Protect Scarce Capacity</h3><p>Optimize public value, coordinate sweeps and keep emergency reserve teams available.</p></article>
+    <article><span>04</span><h3>Verify & Learn</h3><p>Before/after proof and citizen confirmation feed Civic Memory so recurring failures become visible.</p></article>
+  </div>
+  <div class="prevention-action">{% if session.get('admin') %}<a class="btn light" href="{{ url_for('admin_intelligence') }}">Open Authority Intelligence →</a>{% elif session.get('citizen_id') %}<a class="btn light" href="{{ url_for('civic_intelligence_public') }}">Open Public Civic Intelligence →</a>{% else %}<a class="btn light" href="{{ url_for('citizen_login',next=url_for('civic_intelligence_public')) }}">Citizen Login for Civic Intelligence →</a>{% endif %}</div>
+</section>
+
 <section class="home-about" id="about">
   <div>
     <span class="section-label">{{ t('about_us') }}</span>
@@ -137,5 +173,21 @@
   document.addEventListener('DOMContentLoaded', function(){
     if(typeof initHomeCivicMap === 'function') initHomeCivicMap();
   });
+  async function loadNearbyCivicActivity(){
+    const status=document.getElementById('nearbyCivicStatus'), list=document.getElementById('nearbyCivicList');
+    if(!navigator.geolocation){ status.textContent='Geolocation is not supported by this browser.'; return; }
+    status.textContent='Detecting your location…';
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      try{
+        const res=await fetch(`/api/nearby-activity?lat=${encodeURIComponent(pos.coords.latitude)}&lon=${encodeURIComponent(pos.coords.longitude)}&radius=3`);
+        if(res.status===401 || res.redirected){ window.location='/citizen/login?next=/'; return; }
+        const data=await res.json(); if(!data.ok) throw new Error(data.error||'Unable to load nearby activity');
+        status.textContent=`${data.count} civic case(s) found within ${data.radiusKm} km.`;
+        if(!data.items.length){ list.innerHTML='<div class="nearby-placeholder">No mapped civic cases were found within this radius.</div>'; return; }
+        list.innerHTML=data.items.map(item=>`<article class="nearby-civic-card"><div><span>#${item.id} · ${item.distanceKm} km · ${escapeCivic(item.ward)}</span><h3>${escapeCivic(item.title)}</h3><p>${escapeCivic(item.address||'Mapped civic location')}</p><small>${escapeCivic(item.department)} · <b>${escapeCivic(item.status)}</b></small></div><div class="nearby-card-actions">${item.alreadyUpvoted?'<span class="voted-chip">▲ Supported once</span>':(data.participationVerified?`<form method="post" action="/upvote/${item.id}"><button class="btn light compact-btn">▲ Support · ${item.upvotes}</button></form>`:'<a class="btn light compact-btn" href="/citizen/profile">Verify email to support</a>')}<a class="btn ghost-dark compact-btn" href="/track?cid=${item.id}">${item.canVerify?'Verify resolution':'Open case'} →</a></div></article>`).join('');
+      }catch(err){ status.textContent=err.message||'Could not load nearby civic activity.'; }
+    }, err=>{ status.textContent='Location permission was not granted. You can still use the Public Board and Civic Intelligence.'; }, {enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+  }
+  function escapeCivic(value){ const d=document.createElement('div'); d.textContent=value??''; return d.innerHTML; }
 </script>
 {% endblock %}

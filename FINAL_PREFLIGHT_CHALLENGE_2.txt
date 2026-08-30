@@ -1,0 +1,34 @@
+[PASS] Python syntax
+[PASS] Required files — all present
+[PASS] SQLite integrity — ok
+[PASS] One active task per team — violations: 0
+[PASS] Reserve Capacity Guard — state=1
+[PASS] Location label is not hard-coded — Live location
+[PASS] Trust database layer — tables=3/3
+[PASS] Public truth registry seeded
+[PASS] Jinja templates — 52 parsed
+[PASS] Worker Center is admin-only
+[PASS] Worker detail dashboards are admin-only
+[PASS] Worker portal requires worker auth
+[PASS] Authority login restricted to admin role
+[PASS] Worker updates require worker-only auth
+[PASS] Citizen email OTP enabled
+[PASS] Resolution feedback mail enabled
+[PASS] Email delivery audit enabled
+[PASS] Government asset registry enabled
+[PASS] Contractor management enabled
+[PASS] Procurement enabled
+[PASS] Finance enabled
+[PASS] Blackout recovery enabled
+[PASS] Asset complaint linking enabled
+[PASS] Trust Center enabled
+[PASS] Rumor verification API enabled
+[PASS] Coordinated attack simulation enabled
+[PASS] Coordinated submission scoring enabled
+[PASS] High-risk public quarantine enabled
+[PASS] Shareable WhatsApp correction enabled
+[PASS] Admin worker view is read-only
+[PASS] JavaScript syntax
+[PASS] Demo reset seed — ready
+
+CivicOS preflight: READY

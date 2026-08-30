@@ -1,0 +1,30 @@
+{% extends 'admin_base.html' %}
+{% block title %}Public Value Optimizer · CivicOS{% endblock %}
+{% block admin_content %}
+<section class="admin-page-heading"><div><span>PUBLIC VALUE OPTIMIZER</span><h1>What should we fix with the resources we actually have?</h1><p>Choose budget, workers, vehicles and time. CivicOS selects a transparent intervention portfolio designed to maximize public benefit.</p></div><a class="admin-outline-btn" href="{{ url_for('admin_intelligence') }}">← Civic Intelligence</a></section>
+
+<form class="optimizer-control admin-card" method="post">
+  <label><span>Budget (₹)</span><input type="number" name="budget" min="10000" step="10000" value="{{ plan.budget }}"></label>
+  <label><span>Workers</span><input type="number" name="workers" min="1" max="500" value="{{ plan.workers }}"></label>
+  <label><span>Vehicles</span><input type="number" name="vehicles" min="1" max="100" value="{{ plan.vehicles }}"></label>
+  <label><span>Planning window (days)</span><input type="number" name="days" min="1" max="90" value="{{ plan.days }}"></label>
+  <button class="admin-primary-btn" type="submit">Optimize Municipal Plan</button>
+</form>
+
+<section class="optimizer-summary-grid">
+  <article><small>Plan Cost</small><b>{{ format_inr(plan.spent) }}</b><span>{{ format_inr(plan.remaining) }} remains</span></article>
+  <article><small>Citizens Benefited</small><b>{{ '{:,}'.format(plan.citizens_benefited) }}</b><span>prototype exposure estimate</span></article>
+  <article><small>Incidents Prevented</small><b>{{ plan.incidents_prevented }}</b><span>expected recurrence/cascade reduction</span></article>
+  <article><small>Avoided Delay Cost</small><b>{{ format_inr(plan.avoided_delay_cost) }}</b><span>if selected work is done now</span></article>
+  <article><small>High-Risk Reduced</small><b>{{ plan.high_risk_reduced }}</b><span>selected critical/high impact cases</span></article>
+</section>
+
+<section class="admin-card optimizer-plan-card">
+  <header class="admin-card-head"><div><h2>Recommended Preventive Plan</h2><p>Selected using benefit-to-cost, impact, urgency, manpower and vehicle constraints.</p></div><span class="prototype-chip">{{ plan.manpower_utilization }}% manpower · {{ plan.vehicle_utilization }}% vehicle utilization</span></header>
+  <div class="optimizer-list">
+    {% for item in plan.selected %}<a href="{{ url_for('complaint_detail', cid=item.row.id) }}"><i>{{ loop.index }}</i><span><b>#{{ item.row.id }} · {{ item.row.title }}</b><small>{{ item.row.ward }} · {{ department_label(item.row.department) }} · {{ item.impact.label }} civic impact</small></span><div><strong>{{ format_inr(item.cost) }}</strong><em>{{ item.impact.estimated_people }} people · {{ item.prevented }} incidents prevented</em></div></a>{% else %}<div class="empty-state">No combination fits the current resource constraints. Increase budget/time or resolve existing work first.</div>{% endfor %}
+  </div>
+</section>
+
+<section class="admin-card optimizer-method-card"><h2>Why this is not “AI magic”</h2><p>The optimizer uses explicit constraints and explainable scores. It does not autonomously approve spending. Government officers can change resource limits, inspect every selected complaint and override the plan.</p></section>
+{% endblock %}

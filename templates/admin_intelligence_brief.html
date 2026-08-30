@@ -1,0 +1,66 @@
+{% extends 'admin_base.html' %}
+{% block title %}Municipal Intelligence Brief · CivicOS{% endblock %}
+{% block admin_content %}
+<section class="admin-page-heading brief-heading no-print">
+  <div><span>Municipal Intelligence Agent</span><h1>Decision Brief</h1><p>One authority-ready summary assembled from the same explainable engines behind CivicOS.</p></div>
+  <div class="heading-actions"><button class="admin-primary-btn" type="button" onclick="window.print()">Print / Save PDF</button><a class="admin-outline-btn" href="{{ url_for('admin_intelligence') }}">Back to Intelligence</a></div>
+</section>
+
+<section class="municipal-brief">
+  <header class="brief-masthead"><div><span>CivicOS</span><h1>Municipal Intelligence Brief</h1><p>{{ display_time(None) if false else 'Current operational snapshot' }}</p></div><div><small>Civic Debt</small><b>{{ intelligence.debt.score }}/100</b><span>{{ intelligence.debt.label }}</span></div></header>
+
+  <div class="brief-summary-grid">
+    <article><small>Projected 7-day delay liability</small><b>{{ format_inr(intelligence.debt.estimated_liability) }}</b></article>
+    <article><small>Highest ward risk</small><b>{{ intelligence.risks[0].risk if intelligence.risks else 0 }}%</b><span>{{ intelligence.risks[0].ward if intelligence.risks else 'No data' }}</span></article>
+    <article><small>Root-cause clusters</small><b>{{ intelligence.causal|length }}</b></article>
+    <article><small>Silent-zone signals</small><b>{{ intelligence.blind|length }}</b></article>
+  </div>
+
+  <section class="brief-section">
+    <h2>1. Highest-priority interventions</h2>
+    <div class="brief-priority-list">
+      {% for item in intelligence.debt.top[:5] %}
+      <a href="{{ url_for('complaint_detail', cid=item.row.id) }}">
+        <span>#{{ item.row.id }}</span><div><b>{{ item.row.title }}</b><small>{{ item.row.ward }} · {{ department_label(item.row.department) }}</small></div><strong>{{ item.impact.label }} {{ item.impact.score }}/100</strong><em>+{{ format_inr(item.delay.extra_cost) }} if delayed 7d</em>
+      </a>
+      {% else %}<div class="empty-state">No unresolved cases.</div>{% endfor %}
+    </div>
+  </section>
+
+  <div class="brief-two-col">
+    <section class="brief-section">
+      <h2>2. Probable systemic cause</h2>
+      {% if intelligence.causal %}{% set c=intelligence.causal[0] %}
+      <div class="brief-callout"><span>{{ c.confidence }}% confidence</span><h3>{{ c.root_cause }}</h3><p>{{ c.recommendation }}</p><small>{{ c.count }} connected incidents · {{ c.departments|length }} departments · {{ c.label }}</small></div>
+      {% else %}<p>Insufficient recurrence for a stable root-cause clue.</p>{% endif %}
+    </section>
+    <section class="brief-section">
+      <h2>3. Preventive inspection target</h2>
+      {% if intelligence.blind %}{% set b=intelligence.blind[0] %}
+      <div class="brief-callout warning"><span>{{ b.confidence }}% confidence</span><h3>{{ b.ward }}</h3><p>Expected stress {{ b.expected_stress }} vs reporting signal {{ b.reporting_signal }}. Blind-spot score {{ b.blind_score }}.</p><small>Recommendation: verify through proactive field inspection; do not treat the signal as confirmed failure.</small></div>
+      {% else %}<p>No strong silent-zone signal in the current dataset.</p>{% endif %}
+    </section>
+  </div>
+
+  <div class="brief-two-col">
+    <section class="brief-section">
+      <h2>4. Service equity watch</h2>
+      {% if intelligence.equity %}{% set e=intelligence.equity[0] %}
+      <div class="brief-callout purple"><span>{{ e.label }} · {{ e.pressure }}/100</span><h3>{{ e.ward }}</h3><p>{{ e.reasons|join(' · ') }}</p><small>{{ e.recommendation }}</small></div>
+      {% else %}<p>No service-equity signal.</p>{% endif %}
+    </section>
+    <section class="brief-section">
+      <h2>5. Resource safety</h2>
+      <div class="brief-resource-list">{% for r in intelligence.reserve %}<div><b>{{ department_label(r.department) }}</b><span>{{ r.available }}/{{ r.total }} available</span><strong>{{ r.state }}</strong></div>{% endfor %}</div>
+      <p class="brief-note">Reserve Capacity Guard: {{ 'ON' if reserve_guard_enabled else 'OFF' }} · Disaster Operations: {{ 'ON' if disaster_mode else 'OFF' }}</p>
+    </section>
+  </div>
+
+  <section class="brief-section">
+    <h2>6. Structural recommendations</h2>
+    <div class="brief-policy-grid">{% for item in intelligence.policy %}<article><span>{{ item.confidence }}% confidence</span><h3>{{ item.title }}</h3><p>{{ item.finding }}</p><b>{{ item.recommendation }}</b></article>{% endfor %}</div>
+  </section>
+
+  <footer class="brief-disclaimer"><b>Decision-support boundary</b><span>CivicOS ranks and explains operational evidence. Root-cause, blind-spot, risk, cost and equity outputs are prototype signals for authority review/inspection—not autonomous policy decisions or claims of certainty.</span></footer>
+</section>
+{% endblock %}

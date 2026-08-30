@@ -1,0 +1,31 @@
+{% extends 'admin_base.html' %}
+{% block title %}Cross-Department Sweeps · CivicOS{% endblock %}
+{% block admin_content %}
+<section class="admin-page-heading"><div><span>CROSS-DEPARTMENT SWEEP</span><h1>One locality. Multiple symptoms. One coordinated response.</h1><p>CivicOS identifies connected complaints spanning departments and turns them into a coordinated mission without assigning one worker multiple active tasks.</p></div><a class="admin-outline-btn" href="{{ url_for('admin_intelligence') }}">← Civic Intelligence</a></section>
+
+<section class="sweep-grid">
+  <article class="admin-card">
+    <header class="admin-card-head"><div><h2>Suggested Sweeps</h2><p>Generated from spatial/ward clusters with multiple departments and active complaints.</p></div></header>
+    <div class="sweep-suggestions">
+      {% for sweep in intelligence.sweeps %}
+      <form method="post" class="sweep-suggestion-card">
+        <span>{{ sweep.confidence }}% connection confidence</span><h3>{{ sweep.title }}</h3><p>{{ sweep.description }}</p><b>{{ sweep.recommendation }}</b>
+        <div class="sweep-depts">{% for dept in sweep.departments %}<i>{{ department_label(dept) }}</i>{% endfor %}</div>
+        <div class="sweep-complaints">{% for cid in sweep.complaint_ids %}<a href="{{ url_for('complaint_detail', cid=cid) }}">#{{ cid }}</a>{% endfor %}</div>
+        <input type="hidden" name="title" value="{{ sweep.title }}"><input type="hidden" name="description" value="{{ sweep.description }} {{ sweep.recommendation }}"><input type="hidden" name="complaint_ids" value="{{ sweep.complaint_ids|join(',') }}">
+        <button class="admin-primary-btn" type="submit">Create Sweep Mission</button>
+      </form>
+      {% else %}<div class="empty-state">No multi-department active cluster is strong enough right now. New connected complaints will automatically create suggestions.</div>{% endfor %}
+    </div>
+  </article>
+
+  <article class="admin-card">
+    <header class="admin-card-head"><div><h2>Mission Board</h2><p>Plan → Active → Completed. Complaint timelines keep an audit trail.</p></div></header>
+    <div class="mission-list">
+      {% for mission in missions %}<div><span><b>#S-{{ mission.id }} · {{ mission.title }}</b><small>{{ mission.item_count }} complaints · {{ mission.departments|replace(',', ' · ') }} · {{ display_time(mission.created_at) }}</small></span><strong class="status-mini">{{ mission.status }}</strong><p>{{ mission.description }}</p><form method="post" action="{{ url_for('admin_sweep_status', mission_id=mission.id) }}"><select name="status"><option {{ 'selected' if mission.status=='Planned' else '' }}>Planned</option><option {{ 'selected' if mission.status=='Active' else '' }}>Active</option><option {{ 'selected' if mission.status=='Completed' else '' }}>Completed</option></select><button type="submit">Update</button></form></div>{% else %}<div class="empty-state">No sweep mission has been created yet.</div>{% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="admin-card sweep-rule-card"><h2>How “One Trip, Multiple Problems” stays safe</h2><p>The route/sweep layer groups inspections and coordination. The existing database rule still prevents any field team from holding more than one unresolved repair task at a time. A sweep can involve several departments, but individual worker assignment remains protected.</p></section>
+{% endblock %}

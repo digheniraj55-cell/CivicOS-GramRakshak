@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Asset Verification #{{ asset.asset_uid }} · CivicOS{% endblock %}
+{% block content %}
+<main class="page-shell">
+  <div class="public-asset-qr-card">
+    <div class="qr-card-header">
+      <div class="qr-header-badge">
+        <span>🏛️ Official Municipal Infrastructure Asset</span>
+      </div>
+      <h1>{{ asset.name }}</h1>
+      <p class="asset-uid-tag">UID: <b>{{ asset.asset_uid }}</b></p>
+    </div>
+
+    <div class="qr-card-body">
+      <div class="qr-svg-display">
+        {{ qr_svg|safe }}
+        <span class="qr-scan-label">CivicOS GramRakshak Verified QR Tag</span>
+      </div>
+
+      <div class="qr-asset-details">
+        <table class="qr-spec-table">
+          <tbody>
+            <tr><td><b>Category:</b></td><td>{{ cat_info.icon }} {{ cat_info.name if current_lang == 'en' else cat_info.name_mr }}</td></tr>
+            <tr><td><b>Administrative Ward:</b></td><td><b>{{ asset.ward }}</b> ({{ asset.village }})</td></tr>
+            <tr><td><b>Landmark / Location:</b></td><td>{{ asset.location }}</td></tr>
+            <tr><td><b>Department In-Charge:</b></td><td>{{ department_label(asset.department) }}</td></tr>
+            <tr><td><b>Operational Status:</b></td><td><span class="status-pill status-{{ asset.status|lower|replace(' ', '-')|replace('/', '') }}">{{ asset.status }}</span></td></tr>
+            <tr><td><b>Cleanliness / Health Score:</b></td><td><b style="color: {{ condition.color }};">{{ condition.score }}% ({{ condition.label }})</b></td></tr>
+            <tr><td><b>Commissioned / Installed:</b></td><td>{{ asset.install_date or '—' }}</td></tr>
+            <tr><td><b>Last Municipal Inspection:</b></td><td>{{ asset.last_inspection_date or '—' }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="qr-action-banner">
+      <div class="action-banner-text">
+        <h3>Noticed a defect, breakdown or sanitation issue with this facility?</h3>
+        <p>Submit a direct geotagged report. Your complaint will be automatically linked to this asset and routed to the assigned field team.</p>
+      </div>
+      <a href="{{ url_for('report', asset_uid=asset.asset_uid) }}" class="primary-btn btn-lg" style="background:#dc2626; color:#fff;">
+        🚨 Report Issue for this Asset Now
+      </a>
+    </div>
+  </div>
+</main>
+{% endblock %}

@@ -36,12 +36,24 @@
   >
 
     <div class="form-grid">
+      {% if linked_asset %}
+      <div class="linked-asset-alert" style="grid-column:1/-1;background:#eff6ff;border:1.5px solid #3b82f6;border-radius:10px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(59,130,246,.1);">
+        <div>
+          <span style="font-size:11px;font-weight:800;color:#1d4ed8;letter-spacing:.05em;text-transform:uppercase;">🏛️ Official Municipal Asset Associated</span>
+          <h3 style="margin:3px 0 2px;font-size:16px;color:#0f172a;">{{ linked_asset.name }}</h3>
+          <div style="font-size:12px;color:#475569;">UID: <b>{{ linked_asset.asset_uid }}</b> · 📍 {{ linked_asset.location }}, {{ linked_asset.ward }}</div>
+        </div>
+        <input type="hidden" name="asset_uid" value="{{ linked_asset.asset_uid }}">
+        <span style="font-size:28px;">✓</span>
+      </div>
+      {% endif %}
 
 
       <!-- Citizen Name -->
 
       <input
         name="citizen_name"
+        value="{{ citizen.full_name or '' }}"
         placeholder="{{ t('citizen_name') }}"
         autocomplete="name"
         required
@@ -62,7 +74,9 @@
       <input
         type="email"
         name="email"
+        value="{{ citizen.email or '' }}"
         placeholder="{{ t('email_optional') }}"
+        readonly
         autocomplete="email"
       >
 
@@ -71,6 +85,8 @@
 
       <input
         name="title"
+        id="reportTitle"
+        value="{{ (linked_asset.name ~ ' issue') if linked_asset else '' }}"
         placeholder="{{ t('issue_title') }}"
         required
       >
@@ -95,6 +111,7 @@
 
       <input
         name="village"
+        value="{{ linked_asset.village if linked_asset else (citizen.village or '') }}"
         placeholder="{{ t('village_town') }}"
         required
       >
@@ -104,6 +121,7 @@
 
       <input
         name="ward"
+        value="{{ linked_asset.ward if linked_asset else (citizen.ward or '') }}"
         placeholder="{{ t('ward_area') }}"
         required
       >
@@ -116,6 +134,7 @@
       <input
         name="location"
         id="reportLocation"
+        value="{{ linked_asset.location if linked_asset else '' }}"
         placeholder="{{ t('exact_landmark') }}"
         required
       >
@@ -465,11 +484,18 @@
 
 
 
+    <section class="civic-voice-card">
+      <div><span class="section-label">Civic Voice</span><h3>Report the issue by speaking</h3><p>Speak naturally in English, हिंदी or मराठी. CivicOS converts your voice into the issue description; you can review and edit it before submitting.</p></div>
+      <div class="civic-voice-controls"><select id="voiceLanguage"><option value="en-IN">English</option><option value="hi-IN">हिंदी</option><option value="mr-IN">मराठी</option></select><button type="button" class="btn primary" id="voiceReportButton">🎙 Start Voice Report</button></div>
+      <div id="voiceReportStatus" class="voice-report-status">Voice input works best in Chrome/Edge with microphone permission.</div>
+    </section>
+
     <!-- =========================================================
          COMPLAINT DESCRIPTION
          ========================================================= -->
 
     <textarea
+      id="reportDescription"
       name="description"
       placeholder="{{ t('description_placeholder') }}"
       required
@@ -494,6 +520,10 @@
     </label>
 
 
+
+    <div class="report-trust-note">
+      <span>◈</span><div><b>Civic Trust precheck</b><p>Your complaint is checked for coordinated copy patterns and evidence signals. This is <strong>not</strong> an automatic truth verdict. High-risk submissions may be withheld from public feeds while authority review continues.</p></div>
+    </div>
 
     <!-- =========================================================
          FORM ACTIONS
@@ -765,7 +795,7 @@ function getReportLocation() {
        GET GPS POSITION
        ========================================================= */
 
-    navigator.geolocation.getCurrentPosition(
+    getBestCivicPosition(
 
         async function(position) {
 
@@ -1679,6 +1709,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(input) input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchReportLocation();}});
 });
 
+
+
+
 </script>
+<script src="{{ url_for('static', filename='civic_voice.js') }}"></script>
 
 {% endblock %}

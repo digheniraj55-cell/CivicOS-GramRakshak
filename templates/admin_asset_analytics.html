@@ -1,0 +1,221 @@
+{% extends 'admin_base.html' %}
+{% block title %}Asset Analytics & Capital Planning · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="admin-page-heading">
+  <div>
+    <a href="{{ url_for('admin_assets') }}" class="back-link">← Back to Asset Command Center</a>
+    <h1>📊 Municipal Asset Analytics & Capital Investment Planning</h1>
+    <p>Infrastructure health distribution, ward-wise valuation equity, and high-risk asset replacement forecast.</p>
+  </div>
+  <div class="heading-actions">
+    <a class="admin-secondary-btn" href="{{ url_for('admin_assets_export') }}"><span>↧</span> Export Full Asset Ledger</a>
+  </div>
+</div>
+
+<!-- Key Investment Metrics -->
+<section class="asset-kpi-grid">
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#f5f3ff; color:#7c3aed;">₹</div>
+    <div class="kpi-info">
+      <small>Total Portfolio Valuation</small>
+      <b>{{ format_inr(portfolio.total_valuation) }}</b>
+      <span>Combined balance sheet asset base</span>
+    </div>
+  </div>
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">📈</div>
+    <div class="kpi-info">
+      <small>Average Condition Index</small>
+      <b>{{ portfolio.avg_health_score }}%</b>
+      <span>Overall municipal infrastructure health</span>
+    </div>
+  </div>
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#fef2f2; color:#ef4444;">🚨</div>
+    <div class="kpi-info">
+      <small>Replacement Capital Needed</small>
+      <b>{{ format_inr(replacement_needed) }}</b>
+      <span>For {{ critical_assets|length }} degraded / critical assets</span>
+    </div>
+  </div>
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#fff7ed; color:#ea580c;">⏳</div>
+    <div class="kpi-info">
+      <small>Overdue Inspections</small>
+      <b>{{ portfolio.maintenance_overdue }}</b>
+      <span>Assets requiring preventive check</span>
+    </div>
+  </div>
+</section>
+
+<!-- Analytics Charts Grid -->
+<div class="analytics-charts-grid">
+  <section class="admin-card">
+    <header class="admin-card-head">
+      <div>
+        <h2>Infrastructure Valuation by Category (₹ INR)</h2>
+        <p>Capital investment distribution across 17 municipal asset sectors.</p>
+      </div>
+    </header>
+    <div style="height: 320px; padding: 12px;">
+      <canvas id="categoryValuationChart"></canvas>
+    </div>
+  </section>
+
+  <section class="admin-card">
+    <header class="admin-card-head">
+      <div>
+        <h2>Ward-wise Asset Distribution & Equity</h2>
+        <p>Asset counts and total valuation by administrative ward.</p>
+      </div>
+    </header>
+    <div style="height: 320px; padding: 12px;">
+      <canvas id="wardEquityChart"></canvas>
+    </div>
+  </section>
+</div>
+
+<!-- High Risk / Critical Replacement Table -->
+<section class="admin-card">
+  <header class="admin-card-head">
+    <div>
+      <h2>High-Risk & Ageing Infrastructure Replacement Forecast</h2>
+      <p>Assets with condition score below 50 requiring priority capital intervention.</p>
+    </div>
+  </header>
+  <div class="simple-table-wrap">
+    <table class="admin-simple-table wide">
+      <thead>
+        <tr>
+          <th>UID</th>
+          <th>Asset Name</th>
+          <th>Category</th>
+          <th>Ward</th>
+          <th>Condition</th>
+          <th>Status</th>
+          <th>Estimated Valuation</th>
+          <th>Est. Replacement Cost</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in critical_assets %}
+        {% set cond = condition_for(a.condition_score) %}
+        {% set cat_info = asset_categories.get(a.category, {}) %}
+        <tr class="danger-row">
+          <td><b>{{ a.asset_uid }}</b></td>
+          <td><b>{{ a.name }}</b><small class="text-muted">{{ a.location }}</small></td>
+          <td>{{ cat_info.icon }} {{ cat_info.name }}</td>
+          <td>{{ a.ward }}</td>
+          <td><b style="color: {{ cond.color }};">{{ cond.score }}% ({{ cond.label }})</b></td>
+          <td><span class="status-pill status-danger">{{ a.status }}</span></td>
+          <td>{{ format_inr(a.estimated_value) }}</td>
+          <td><b class="text-danger">{{ format_inr(a.replacement_cost) }}</b></td>
+          <td><a href="{{ url_for('admin_asset_detail', aid=a.id) }}" class="table-action">Work Order →</a></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state" style="padding:24px;">
+              <p style="color:#10b981; font-weight:bold;">✓ Excellent! No assets currently fall into the critical high-risk threshold.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+  const portfolioData = {{ portfolio|tojson }};
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Category Valuation Chart
+    const catLabels = [];
+    const catVals = [];
+    const catColors = [
+      '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+      '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+      '#06b6d4', '#eab308', '#a855f7', '#64748b', '#0ea5e9',
+      '#d946ef', '#22c55e'
+    ];
+
+    Object.keys(portfolioData.by_category).forEach(k => {
+      const item = portfolioData.by_category[k];
+      if (item.count > 0) {
+        catLabels.push(item.name);
+        catVals.push(item.valuation);
+      }
+    });
+
+    const ctxCat = document.getElementById('categoryValuationChart');
+    if (ctxCat) {
+      new Chart(ctxCat, {
+        type: 'doughnut',
+        data: {
+          labels: catLabels,
+          datasets: [{
+            data: catVals,
+            backgroundColor: catColors.slice(0, catLabels.length)
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    // 2. Ward Equity Chart
+    const wardLabels = [];
+    const wardVals = [];
+    const wardCounts = [];
+
+    Object.keys(portfolioData.by_ward).forEach(w => {
+      wardLabels.push(w);
+      wardVals.push(portfolioData.by_ward[w].valuation / 100000); // in Lakhs
+      wardCounts.push(portfolioData.by_ward[w].count);
+    });
+
+    const ctxWard = document.getElementById('wardEquityChart');
+    if (ctxWard) {
+      new Chart(ctxWard, {
+        type: 'bar',
+        data: {
+          labels: wardLabels,
+          datasets: [
+            {
+              label: 'Asset Valuation (₹ in Lakhs)',
+              data: wardVals,
+              backgroundColor: '#3b82f6',
+              borderRadius: 6,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Total Asset Count',
+              data: wardCounts,
+              backgroundColor: '#10b981',
+              borderRadius: 6,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { type: 'linear', position: 'left', title: { display: true, text: '₹ in Lakhs' } },
+            y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Units Count' } }
+          }
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

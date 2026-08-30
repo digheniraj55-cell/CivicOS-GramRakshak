@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Verify Resolution · CivicOS{% endblock %}
+{% block content %}
+<main class="page-shell resolution-review-page">
+  <div class="page-title"><span class="section-label">Closed-Loop Service Verification</span><h1>Verify the real-world result</h1><p>CivicOS does not treat an authority-approved closure as the end of the cycle until the citizen has a chance to verify it.</p></div>
+  <section class="resolution-case-summary panel">
+    <div><small>Complaint #{{ comp.id }}</small><h2>{{ comp.title }}</h2><p>{{ comp.description }}</p><div class="badge-row"><span>{{ comp.status }}</span><span>{{ department_label(comp.department) }}</span><span>{{ comp.ward }}</span></div></div>
+    <div class="evidence-grid"><div class="evidence-card"><small>Before</small>{% if comp.before_photo %}<img src="{{ url_for('static',filename='uploads/'+comp.before_photo) }}">{% else %}<div class="evidence-empty">No before image</div>{% endif %}</div><div class="evidence-card"><small>Completion proof</small>{% if comp.after_photo %}<img src="{{ url_for('static',filename='uploads/'+comp.after_photo) }}">{% else %}<div class="evidence-empty">No completion image</div>{% endif %}</div></div>
+  </section>
+  {% if (comp.citizen_resolution or 'Pending') == 'Pending' %}
+  <form method="post" enctype="multipart/form-data" class="panel resolution-decision-form">
+    <span class="section-label">One-Time Citizen Decision</span><h2>Is the issue actually resolved?</h2>
+    <div class="resolution-choice-grid">
+      <label class="resolution-choice satisfied"><input type="radio" name="verdict" value="satisfied" required><span>✓ Yes, resolved</span><small>Confirm completion and rate the field worker.</small></label>
+      <label class="resolution-choice unresolved"><input type="radio" name="verdict" value="not_satisfied" required><span>↺ No, still unresolved</span><small>Request reopening with fresh evidence. Admin review is mandatory.</small></label>
+    </div>
+    <label>Worker rating<select name="rating"><option value="5">★★★★★ · Excellent</option><option value="4">★★★★☆ · Good</option><option value="3">★★★☆☆ · Average</option><option value="2">★★☆☆☆ · Poor</option><option value="1">★☆☆☆☆ · Very poor</option></select></label>
+    <label>Written feedback<textarea name="feedback" rows="3" placeholder="Describe the quality of work and your experience."></textarea></label>
+    <div class="reopen-evidence-box"><h3>If you choose “still unresolved”</h3><p>Fresh photo evidence and a clear reason are required. CivicOS records a reopen request first; it does not immediately reopen the case.</p><textarea name="reopen_reason" rows="3" placeholder="Explain what remains unresolved or what failed again."></textarea><input type="file" name="reopen_photo" accept="image/*"></div>
+    <button class="btn primary" type="submit">Submit One-Time Verification</button>
+  </form>
+  {% else %}
+  <section class="panel"><span class="section-label">Response Recorded</span><h2>{{ comp.citizen_resolution }}</h2><p>This resolution cycle already has a citizen outcome. CivicOS blocks repeated submissions.</p><a class="btn primary" href="{{ url_for('track',cid=comp.id) }}">Open Case Timeline</a></section>
+  {% endif %}
+</main>
+{% endblock %}

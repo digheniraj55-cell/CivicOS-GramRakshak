@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Civic Trust Center · CivicOS{% endblock %}
+{% block content %}
+<main class="trust-page">
+  <section class="trust-hero">
+    <div class="trust-hero-copy">
+      <span class="trust-kicker">Civic Trust & Verification Layer</span>
+      <h1>Before you forward it,<br><em>verify it.</em></h1>
+      <p>Paste a WhatsApp message, scheme rumor, health or water alert, transport update, food-safety warning, or civic allegation. CivicOS compares it with published authority corrections and keeps uncertain information clearly labelled.</p>
+      <div class="trust-principle"><b>Identity verified ≠ information verified.</b><span>A real account can still share a false claim. CivicOS checks both separately.</span></div>
+    </div>
+    <form class="trust-check-card" method="get" action="{{ url_for('trust_center') }}">
+      <div class="trust-card-head"><span>◈</span><div><b>Check a circulating claim</b><small>Paste the message as you received it</small></div></div>
+      <textarea name="q" rows="7" maxlength="5000" placeholder="Example: Forwarded message says Route 7 bus has been permanently cancelled..." required>{{ query }}</textarea>
+      <div class="trust-check-actions"><button class="btn primary" type="submit">Check against authority bulletins →</button><small>No claim is treated as true just because no match is found.</small></div>
+    </form>
+  </section>
+
+  <section class="trust-stat-grid">
+    <article><span>Published corrections</span><b>{{ trust_summary.published }}</b><small>Authority bulletins in registry</small></article>
+    <article><span>False claims corrected</span><b>{{ trust_summary.false }}</b><small>Published as False</small></article>
+    <article><span>Misleading claims</span><b>{{ trust_summary.misleading }}</b><small>Context-required corrections</small></article>
+    <article><span>Awaiting authority review</span><b>{{ trust_summary.pending }}</b><small>Community rumor reports</small></article>
+  </section>
+
+  {% if query %}
+  <section class="trust-result-card {{ verdict_tone(result.verdict) if result else 'neutral' }}" id="result">
+    {% if result and result.matched %}
+      <div class="trust-verdict-row">
+        <span class="trust-verdict {{ verdict_tone(result.verdict) }}">{{ result.verdict }}</span>
+        <span class="trust-confidence">{{ (result.confidence * 100)|round|int }}% text match to published authority record</span>
+      </div>
+      <span class="section-label">Closest verified bulletin</span>
+      <h2>{{ result.bulletin.title }}</h2>
+      <div class="trust-claim-quote"><small>Circulating claim</small><p>{{ result.bulletin.claim_summary }}</p></div>
+      <div class="trust-fact-box"><small>Authority correction / context</small><p>{{ result.bulletin.fact_text }}</p></div>
+      <div class="trust-source-line"><b>Source:</b> {{ result.bulletin.official_source or 'Authority review' }} · Published {{ display_time(result.bulletin.published_at) }}</div>
+      <div class="trust-result-actions"><a class="btn primary" href="{{ url_for('truth_detail', bulletin_id=result.bulletin.id) }}">Open shareable correction →</a><a class="btn light" href="#report-rumor">Report this circulation</a></div>
+    {% else %}
+      <div class="trust-verdict-row"><span class="trust-verdict neutral">Unverified</span><span class="trust-confidence">No strong published match found</span></div>
+      <h2>CivicOS cannot confirm this claim yet.</h2>
+      <p>This does <b>not</b> mean the claim is true. It means the published authority bulletin registry does not contain a sufficiently strong match. Do not amplify it as fact until the responsible authority or a traceable primary source verifies it.</p>
+      <div class="trust-result-actions"><a class="btn primary" href="#report-rumor">Send to authority Trust Queue →</a></div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if submitted %}
+  <section class="trust-submitted-note"><b>Report #TR-{{ submitted.id }} recorded.</b><span>Current status: {{ submitted.status }} · Verdict: {{ submitted.verdict }}. CivicOS preserves the claim as an allegation until authority review.</span></section>
+  {% endif %}
+
+  <section class="trust-main-grid">
+    <article class="trust-panel" id="report-rumor">
+      <div class="trust-panel-head"><span class="section-label">Community Signal</span><h2>Report a rumor for authority review</h2><p>Useful when a message is spreading through WhatsApp or social groups but there is no official correction yet.</p></div>
+      <form class="trust-report-form" method="post" action="{{ url_for('trust_report') }}">
+        <label>Claim or forwarded message<textarea name="claim_text" rows="6" maxlength="5000" required>{{ query }}</textarea></label>
+        <div class="trust-form-grid">
+          <label>Topic<select name="category">{% for key,label in trust_categories.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label>
+          <label>Where did you see it?<select name="source_channel">{% for channel in trust_channels %}<option>{{ channel }}</option>{% endfor %}</select></label>
+        </div>
+        <label>Original source link <small>(optional)</small><input name="source_url" placeholder="https://..."></label>
+        <button class="btn primary" type="submit">Submit to Trust Queue</button>
+        <p class="trust-form-note">Submitting a rumor does not publish it as true. Unreviewed reports remain labelled <b>Unverified</b>.</p>
+      </form>
+    </article>
+
+    <article class="trust-panel trust-how-panel">
+      <div class="trust-panel-head"><span class="section-label">How it works</span><h2>Verification without pretending the algorithm knows everything</h2></div>
+      <div class="trust-step-list">
+        <div><i>1</i><span><b>Authority source registry</b><small>Government corrections and advisories are published with source, time and verdict.</small></span></div>
+        <div><i>2</i><span><b>Explainable text matching</b><small>Forwarded wording is matched locally against known bulletins—even if formatting changed.</small></span></div>
+        <div><i>3</i><span><b>Human review for uncertainty</b><small>Unknown claims go to a Trust Queue instead of being guessed as true or false.</small></span></div>
+        <div><i>4</i><span><b>Coordinated-abuse detection</b><small>Near-identical complaints across accounts or wards are risk-scored and can be quarantined from public feeds.</small></span></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="trust-bulletin-section">
+    <div class="home-section-title"><span class="section-label">Official Corrections</span><h2>Latest Trust Bulletins</h2><p>Each card distinguishes a verified correction from an unverified rumor. Demo records are labelled so they cannot be confused with real authority advisories.</p></div>
+    <div class="trust-bulletin-grid">
+      {% for b in bulletins %}
+      <a class="trust-bulletin-card" href="{{ url_for('truth_detail', bulletin_id=b.id) }}">
+        <div class="trust-bulletin-top"><span class="trust-verdict {{ verdict_tone(b.verdict) }}">{{ b.verdict }}</span>{% if b.is_demo %}<em>HACKATHON DEMO</em>{% endif %}</div>
+        <small>{{ trust_categories.get(b.category,b.category)|upper }}</small>
+        <h3>{{ b.title }}</h3>
+        <p>{{ b.fact_text }}</p>
+        <footer><span>{{ b.official_source or 'Authority review' }}</span><b>Open →</b></footer>
+      </a>
+      {% else %}<div class="empty-state">No public verification bulletins have been published yet.</div>{% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}

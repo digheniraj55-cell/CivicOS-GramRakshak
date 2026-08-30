@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Citizen Sign In · CivicOS{% endblock %}
+{% block content %}
+<section class="auth-page civic-bg citizen-auth-page">
+  <div class="citizen-auth-grid">
+    <form class="auth-card citizen-auth-card" method="post">
+      <span class="section-label">Verified Civic Account</span>
+      <h1>Citizen Sign In</h1>
+      <p>Sign in with your CivicOS email and password. New accounts are activated with a 6-digit email OTP.</p>
+      <input type="hidden" name="next" value="{{ request.args.get('next','') }}">
+      <input name="email" type="email" autocomplete="email" placeholder="Email address" required>
+      <input name="password" type="password" autocomplete="current-password" placeholder="Password" required>
+      <label class="captcha-field"><span>CAPTCHA · {{ captcha_question }}</span><input name="captcha" inputmode="numeric" autocomplete="off" placeholder="Answer" required></label>
+      <button class="btn primary" type="submit">Sign In</button>
+      <p class="auth-switch">New to CivicOS? <a href="{{ url_for('citizen_register') }}">Create a Civic Account</a></p>
+    </form>
+    <aside class="citizen-auth-explain">
+      <span>Identity & trust</span><h2>Email OTP protects civic participation.</h2>
+      <p>CivicOS verifies that the citizen owns the email address used for reporting, voting and resolution feedback. Resident verification remains a separate governance check.</p>
+      <ul><li>✓ CAPTCHA-protected authentication</li><li>✓ 6-digit email OTP verification</li><li>✓ One account → one issue upvote</li><li>✓ Secure resolution feedback links</li><li>✓ SOS remains accessible without login</li></ul>
+      <a href="{{ url_for('sos') }}" class="sos-inline-link">Emergency? Open SOS immediately →</a>
+    </aside>
+  </div>
+</section>
+{% endblock %}

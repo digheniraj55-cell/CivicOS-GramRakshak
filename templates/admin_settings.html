@@ -1,6 +1,80 @@
 {% extends 'admin_base.html' %}
 {% block title %}Settings · CivicOS{% endblock %}
 {% block admin_content %}
-<div class="admin-page-heading"><div><span>System Configuration</span><h1>Settings</h1><p>Keep commonly changed Command Center values separate from core complaint logic.</p></div></div>
-<section class="admin-two-grid"><form class="admin-card admin-settings-form" method="post"><header class="admin-card-head"><h2>Command Center Location</h2></header><label>Area / City name<input name="area_name" value="{{ area_name }}" required></label><div class="settings-coordinate-grid"><label>Default map latitude<input name="map_default_lat" value="{{ map_default_lat }}" inputmode="decimal" required></label><label>Default map longitude<input name="map_default_lon" value="{{ map_default_lon }}" inputmode="decimal" required></label></div><button class="admin-primary-btn" type="submit">Save Settings</button></form><article class="admin-card"><header class="admin-card-head"><h2>Project Configuration</h2></header><div class="settings-info-list"><div><b>One-task worker policy</b><span>Enabled and enforced by SQLite unique index.</span></div><div><b>Automatic SLA escalation</b><span>Enabled when dashboard/service routes synchronize deadlines.</span></div><div><b>Citizen notifications</b><span>Stored notification center + optional email.</span></div><div><b>Location fallback</b><span>GPS, server reverse geocode, address search and map-pin selection.</span></div></div></article></section>
+<div class="admin-page-heading"><div><span>System Configuration</span><h1>Settings</h1><p>Command Center policy, public-link configuration and delivery diagnostics in one place.</p></div></div>
+<section class="admin-two-grid">
+  <form class="admin-card admin-settings-form" method="post">
+    <header class="admin-card-head"><h2>Command Center & Assignment Policy</h2></header>
+    <label>Area / City fallback name<input name="area_name" value="{{ area_name }}" required></label>
+    <div class="settings-coordinate-grid"><label>Default map latitude<input name="map_default_lat" value="{{ map_default_lat }}" inputmode="decimal" required></label><label>Default map longitude<input name="map_default_lon" value="{{ map_default_lon }}" inputmode="decimal" required></label></div>
+    <label class="settings-switch"><input type="checkbox" name="reserve_guard_enabled" value="1" {{ 'checked' if reserve_guard_enabled else '' }}><span><b>Protect final idle response team</b><small>For departments with at least two teams, routine auto-assignment will not consume the last idle team. Emergency/critical work can use it.</small></span></label>
+    <button class="admin-primary-btn" type="submit">Save Settings</button>
+  </form>
+  <article class="admin-card">
+    <header class="admin-card-head"><h2>Project Configuration</h2></header>
+    <div class="settings-info-list">
+      <div><b>One-task worker policy</b><span>Enabled and enforced by a SQLite unique index.</span></div>
+      <div><b>Reserve capacity guard</b><span>{{ 'Enabled' if reserve_guard_enabled else 'Disabled' }} · “Never spend the last resource.”</span></div>
+      <div><b>Disaster Operations Mode</b><span>{{ 'ACTIVE — emergency reserve is protected more aggressively.' if disaster_mode else 'Normal operations.' }}</span></div>
+      <div><b>Automatic SLA escalation</b><span>Enabled when dashboard/service routes synchronize deadlines.</span></div>
+      <div><b>Citizen notifications</b><span>Stored notifications + browser updates + secure SMTP email action links.</span></div>
+      <div><b>Location fallback</b><span>GPS, server reverse geocode, address search and map-pin selection.</span></div>
+      <div><b>Civic Intelligence</b><span>Civic Memory, causal clusters, blind spots, risk, civic debt, optimization, sweeps and policy insights.</span></div>
+    </div>
+  </article>
+</section>
+<section class="admin-card email-diagnostics-card">
+  <header class="admin-card-head"><div><h2>Email & OTP Setup</h2><p>Configure Gmail/SMTP for citizen OTP verification, complaint updates and resolution-feedback emails. Environment variables still take priority on Render/production.</p></div><span class="email-health {{ 'ok' if email_config.configured else 'bad' }}">{{ 'SMTP READY' if email_config.configured else 'SETUP REQUIRED' }}</span></header>
+  <div class="email-diagnostics-grid">
+    <div><small>SMTP server</small><b>{{ email_config.host }}:{{ email_config.port }}</b></div>
+    <div><small>Security</small><b>{{ email_config.security|upper }}</b></div>
+    <div><small>From address</small><b>{{ email_config.sender }}</b></div>
+    <div><small>Public email-link base</small><b>{{ email_config.public_url }}</b></div>
+    <div><small>Citizen account verification</small><b>Email OTP · 10 minute code</b></div>
+    <div><small>Last delivery error</small><b>{{ email_config.last_error if email_config.last_error else 'None' }}</b></div>
+  </div>
+
+  <form class="integration-settings-form" method="post" action="{{ url_for('admin_integrations') }}" autocomplete="off">
+    <div class="integration-section-title"><span>1</span><div><b>Citizen email delivery</b><small>Gmail defaults are shown below. Password fields are never displayed after saving.</small></div></div>
+    <div class="integration-field-grid">
+      <label>SMTP host<input name="smtp_host" value="{{ email_config.host_value or 'smtp.gmail.com' }}" placeholder="smtp.gmail.com"></label>
+      <label>SMTP port<input name="smtp_port" value="{{ email_config.port or '587' }}" inputmode="numeric" placeholder="587"></label>
+      <label>Security<select name="smtp_security"><option value="starttls" {{ 'selected' if email_config.security == 'starttls' else '' }}>STARTTLS (587)</option><option value="ssl" {{ 'selected' if email_config.security == 'ssl' else '' }}>SSL (465)</option><option value="none" {{ 'selected' if email_config.security == 'none' else '' }}>None</option></select></label>
+      <label>Gmail / SMTP username<input type="email" name="smtp_username" value="{{ email_config.username }}" placeholder="civicos.demo@gmail.com"></label>
+      <label>From address<input type="email" name="smtp_from" value="{{ email_config.sender_value }}" placeholder="same as Gmail username"></label>
+      <label>SMTP password / Gmail App Password<input type="password" name="smtp_password" placeholder="{{ 'Saved — leave blank to keep it' if email_config.password_saved else 'Enter App Password' }}" autocomplete="new-password"></label>
+    </div>
+    {% if email_config.password_saved %}<label class="settings-switch compact-secret-switch"><input type="checkbox" name="clear_smtp_password" value="1"><span><b>Clear saved SMTP password</b><small>Only check this if you intentionally want to remove it.</small></span></label>{% endif %}
+    <label>Public CivicOS URL used inside emails<input name="public_url" value="{{ email_config.public_url_value }}" placeholder="http://127.0.0.1:5000 locally or https://your-domain.com on Render"></label>
+
+    <div class="integration-section-title"><span>2</span><div><b>Citizen Email OTP</b><small>No Google Cloud account is required. CivicOS sends a 6-digit verification code through the SMTP account configured above.</small></div></div>
+    <div class="email-help-note"><b>OTP policy:</b> codes expire after <b>10 minutes</b>, are stored as secure hashes, allow a maximum of <b>5 incorrect attempts</b>, and resend is throttled for 60 seconds.</div>
+    <div class="email-help-note"><b>Hackathon continuity:</b> on <code>127.0.0.1</code>/<code>localhost</code> only, if SMTP delivery fails CivicOS can show the generated OTP on the verification page so the demo is not blocked. This fallback is disabled on normal deployed hosts. Real citizens still require working SMTP.</div>
+    <button class="admin-primary-btn" type="submit">Save Email & OTP Setup</button>
+  </form>
+
+  <form class="email-test-form" method="post" action="{{ url_for('admin_email_test') }}"><label>Verify Gmail/SMTP with a real delivery<input type="email" name="recipient" placeholder="your-email@example.com" required></label><button class="admin-primary-btn" type="submit">Verify Gmail & Send Test</button></form>
+  <div class="email-help-note"><b>Citizen email lifecycle:</b> account registration sends a 6-digit email OTP valid for 10 minutes. After a worker submits completion proof, <b>no closure email is sent yet</b>. Only after authority approval does CivicOS send the citizen a signed 14-day <b>Verify Resolution & Rate Work</b> link. If dissatisfied, the citizen can request reopening with fresh evidence.</div>
+  <div class="email-help-note"><b>Gmail requirement:</b> Gmail normally requires <b>2-Step Verification + an App Password</b>; your normal Gmail password will not work. For deployment, prefer Render environment variables so secrets do not live in the project filesystem. Local settings are stored in a git-ignored <code>instance/integrations.json</code>.</div>
+
+  <div class="integration-section-title"><span>3</span><div><b>Email delivery audit</b><small>Recent citizen-verification, resolution and diagnostic email attempts.</small></div></div>
+  <div class="email-delivery-table-wrap">
+    <table class="email-delivery-table">
+      <thead><tr><th>Time</th><th>Purpose</th><th>Recipient</th><th>Status</th><th>Details</th></tr></thead>
+      <tbody>
+      {% for row in email_deliveries %}
+        <tr>
+          <td>{{ display_time(row.created_at) }}</td>
+          <td>{{ row.purpose|replace('_',' ')|title }}</td>
+          <td>{{ row.recipient }}</td>
+          <td><span class="email-health {{ 'ok' if row.status == 'Delivered' else 'bad' }}">{{ row.status }}</span></td>
+          <td>{{ row.error if row.error else 'Delivered successfully' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No email delivery attempts have been recorded yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}

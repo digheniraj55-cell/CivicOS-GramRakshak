@@ -342,7 +342,13 @@
           </small>
 
 
-          <a
+                  <div class="worker-performance-summary">
+          <div><small>Performance Benchmark</small><b>{{ w.performance_score }}/100</b><span>{{ w.performance_band }}</span></div>
+          <div><small>Citizen Rating</small><b>{{ w.avg_rating if w.rating_count else '—' }}</b><span>{{ w.rating_count }} verified rating(s)</span></div>
+          {% if w.incentive_eligible %}<em>🏆 Incentive Eligible</em>{% endif %}
+        </div>
+
+<a
             class="btn primary"
             href="/worker/{{ w.id }}"
           >

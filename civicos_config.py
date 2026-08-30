@@ -74,6 +74,41 @@ WORKERS = [
         "skills": ["fire", "smoke", "rescue", "emergency"],
         "available": True,
     },
+    {
+        "id": "ELE-02",
+        "name": "Electricity Crew 02 · Reserve",
+        "department": "electricity",
+        "skills": ["transformer", "wiring", "streetlight", "power", "emergency restoration"],
+        "available": True,
+    },
+    {
+        "id": "RD-02",
+        "name": "Road Repair Team 02 · Reserve",
+        "department": "road",
+        "skills": ["pothole", "road", "footpath", "drain edge", "emergency access"],
+        "available": True,
+    },
+    {
+        "id": "SAF-02",
+        "name": "Safety Response Unit 02 · Reserve",
+        "department": "police",
+        "skills": ["women safety", "crime", "accident", "crowd", "public safety"],
+        "available": True,
+    },
+    {
+        "id": "HLT-02",
+        "name": "Health Response Team 02 · Reserve",
+        "department": "health",
+        "skills": ["medical", "ambulance", "sanitation", "waste", "outbreak"],
+        "available": True,
+    },
+    {
+        "id": "FIR-02",
+        "name": "Fire Response Unit 02 · Reserve",
+        "department": "fire",
+        "skills": ["fire", "smoke", "rescue", "evacuation", "emergency"],
+        "available": True,
+    },
 ]
 
 ROUTING_RULES = {
@@ -130,5 +165,5 @@ ROUTING_RULES = {
     "road": ["road", "pothole", "bridge", "street", "footpath", "traffic", "रस्ता", "खड्डा"],
 }
 
-STATUS_ORDER = ["Pending", "Assigned", "In Progress", "Resolved"]
+STATUS_ORDER = ["Pending", "Assigned", "In Progress", "Awaiting Admin Verification", "Resolved"]
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}

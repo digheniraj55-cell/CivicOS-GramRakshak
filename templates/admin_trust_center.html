@@ -1,0 +1,100 @@
+{% extends 'admin_base.html' %}
+{% block title %}Trust & Verification · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="admin-page-heading trust-admin-heading"><div><span>Information Integrity</span><h1>Civic Trust & Verification Center</h1><p>Stop false information from becoming an official-looking CivicOS signal. Review community rumors, publish corrections, and quarantine coordinated fake submissions without destroying the underlying audit trail.</p></div><a class="admin-primary-btn" href="{{ url_for('trust_center') }}" target="_blank">Open Public Trust Center ↗</a></div>
+
+<section class="admin-metric-grid six trust-metrics">
+  <article class="admin-metric"><i class="blue">◈</i><div><small>Published Bulletins</small><b>{{ trust_summary.published }}</b><span>Public source registry</span></div></article>
+  <article class="admin-metric"><i class="orange">?</i><div><small>Rumors Pending</small><b>{{ trust_summary.pending }}</b><span>Need authority review</span></div></article>
+  <article class="admin-metric"><i class="red">!</i><div><small>False Corrections</small><b>{{ trust_summary.false }}</b><span>Claims marked false</span></div></article>
+  <article class="admin-metric"><i class="purple">≈</i><div><small>Misleading</small><b>{{ trust_summary.misleading }}</b><span>Context-sensitive claims</span></div></article>
+  <article class="admin-metric"><i class="orange">⌁</i><div><small>High-Risk Submissions</small><b>{{ trust_summary.high_risk }}</b><span>Complaint integrity queue</span></div></article>
+  <article class="admin-metric"><i class="red">⊘</i><div><small>Quarantined</small><b>{{ trust_summary.quarantined }}</b><span>Hidden from public amplification</span></div></article>
+</section>
+
+<section class="trust-admin-principle admin-card"><div><b>Critical rule</b><p>A risk score is a triage signal—not a truth verdict. Emergency/service handling continues. Public visibility can be limited while evidence is checked.</p></div><span>Verified identity ≠ verified facts</span></section>
+
+<section class="trust-simulation-card admin-card">
+  <div><span class="section-label">Safe Demo · Zero Database Changes</span><h2>Simulate a coordinated fake-submission attack</h2><p>Runs four near-identical accusatory submissions across different accounts and wards in memory, then shows exactly why CivicOS would quarantine public amplification.</p></div>
+  <button class="admin-primary-btn" type="button" id="trustSimButton" onclick="runTrustSimulation()">Run Coordination Attack Simulation</button>
+  <div id="trustSimResult" class="trust-sim-result" hidden></div>
+</section>
+
+<section class="trust-admin-grid">
+  <article class="admin-card">
+    <header class="admin-card-head"><div><h2>Rumor & Misinformation Inbox</h2><p>Messages submitted by citizens when no reliable answer was available.</p></div><span class="table-status">{{ misinformation_reports|length }} recent</span></header>
+    <div class="trust-admin-scroll">
+      {% for r in misinformation_reports %}
+      <details class="trust-review-item" {% if r.status in ['Submitted','Under Review'] %}open{% endif %}>
+        <summary><span><b>#TR-{{ r.id }} · {{ r.category|title }}</b><small>{{ r.source_channel }} · {{ display_time(r.created_at) }}</small></span><em class="trust-verdict {{ verdict_tone(r.verdict) }}">{{ r.verdict }}</em></summary>
+        <div class="trust-review-body">
+          <div class="trust-report-claim">{{ r.claim_text }}</div>
+          {% if r.auto_match_id %}<a href="{{ url_for('truth_detail', bulletin_id=r.auto_match_id) }}" target="_blank">Matched public bulletin #TV-{{ r.auto_match_id }} ↗</a>{% endif %}
+          <form method="post" action="{{ url_for('admin_trust_report_review', report_id=r.id) }}" class="trust-admin-form">
+            <div class="trust-form-grid"><label>Status<select name="status">{% for x in ['Submitted','Under Review','Matched Official Record','Reviewed','Closed'] %}<option {% if r.status==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></label><label>Verdict<select name="verdict">{% for x in trust_verdicts %}<option {% if r.verdict==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select></label></div>
+            <label>Authority review note<textarea name="review_note" rows="2">{{ r.review_note or '' }}</textarea></label>
+            <label>Correction for public bulletin<textarea name="correction_text" rows="3" placeholder="What should citizens know instead?"></textarea></label>
+            <div class="trust-form-grid"><label>Official source<input name="official_source" placeholder="Department / authority"></label><label>Primary source URL<input name="evidence_url" placeholder="https://..."></label></div>
+            <label class="trust-checkbox"><input type="checkbox" name="publish_public" value="1"> Publish this review as a shareable public correction</label>
+            <button class="admin-primary-btn" type="submit">Save Review</button>
+          </form>
+        </div>
+      </details>
+      {% else %}<div class="empty-state">No community rumor reports yet.</div>{% endfor %}
+    </div>
+  </article>
+
+  <article class="admin-card trust-publish-card">
+    <header class="admin-card-head"><div><h2>Publish Authority Bulletin</h2><p>Create a source-backed correction citizens can share.</p></div></header>
+    <form method="post" action="{{ url_for('admin_trust_bulletin') }}" class="trust-admin-form">
+      <label>Bulletin title<input name="title" required placeholder="e.g. Route 7 cancellation rumor"></label>
+      <div class="trust-form-grid"><label>Topic<select name="category">{% for key,label in trust_categories.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></label><label>Verdict<select name="verdict">{% for x in trust_verdicts %}<option>{{ x }}</option>{% endfor %}</select></label></div>
+      <label>Circulating claim<textarea name="claim_summary" rows="3" required placeholder="State exactly what people are forwarding..."></textarea></label>
+      <label>Official correction / context<textarea name="fact_text" rows="5" required placeholder="State what is verified, what is not, and what citizens should do..."></textarea></label>
+      <label>Official source<input name="official_source" placeholder="Department / authority / lab / transport office"></label>
+      <label>Primary source URL<input name="evidence_url" placeholder="https://..."></label>
+      <label>Matching keywords<input name="keywords" placeholder="route 7 bus cancelled transport"></label>
+      <label class="trust-checkbox"><input type="checkbox" name="citizen_alert" value="1"> Also push this correction into Citizen Announcements</label>
+      <button class="admin-primary-btn" type="submit">Publish Verification Bulletin</button>
+    </form>
+  </article>
+</section>
+
+<section class="admin-card trust-assessment-card">
+  <header class="admin-card-head"><div><h2>Coordinated Submission Detection</h2><p>Explainable risk scoring checks copy-patterns, evidence presence, high-impact language and cross-account repetition. It never automatically declares a complaint false.</p></div><span class="table-status">{{ assessments|length }} assessed</span></header>
+  <div class="simple-table-wrap"><table class="admin-simple-table wide trust-table"><thead><tr><th>Risk</th><th>Complaint</th><th>Signals</th><th>Public</th><th>Review</th><th>Action</th></tr></thead><tbody>
+  {% for a in assessments %}
+    <tr class="{% if a.risk_score>=80 %}danger-row{% endif %}">
+      <td><span class="trust-risk-score {{ trust_tone(a.risk_label) }}">{{ a.risk_score }}</span><small>{{ a.risk_label }}</small></td>
+      <td><a href="{{ url_for('complaint_detail', cid=a.complaint_id) }}"><b>#{{ a.complaint_id }} · {{ a.title }}</b></a><small>{{ a.ward }} · {{ a.citizen_name or 'Citizen' }} · {{ a.complaint_status }}</small></td>
+      <td><details><summary>{{ (a.signals_json|from_json)|length }} signal(s)</summary><ul class="trust-signal-list">{% for signal in a.signals_json|from_json %}<li>{{ signal }}</li>{% endfor %}</ul>{% set similar=a.similar_complaints_json|from_json %}{% if similar %}<small>Similar case IDs: {{ similar|join(', #') }}</small>{% endif %}</details></td>
+      <td><span class="table-status {{ 'danger' if a.public_visibility=='Quarantined' else '' }}">{{ a.public_visibility }}</span></td>
+      <td><b>{{ a.reviewer_status }}</b>{% if a.review_note %}<small>{{ a.review_note }}</small>{% endif %}</td>
+      <td><form method="post" action="{{ url_for('admin_trust_complaint_review', cid=a.complaint_id) }}" class="trust-inline-review"><select name="decision">{% for x in ['Needs Review','Cleared','Coordinated Abuse','False Submission'] %}<option {% if a.reviewer_status==x %}selected{% endif %}>{{ x }}</option>{% endfor %}</select><input name="review_note" placeholder="Evidence/reason"><button>Save</button></form></td>
+    </tr>
+  {% else %}<tr><td colspan="6"><div class="empty-state">No complaint trust assessments yet.</div></td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="admin-card">
+  <header class="admin-card-head"><div><h2>Published Verification Registry</h2><p>Public truth records with their source and verdict.</p></div><a href="{{ url_for('trust_center') }}" target="_blank">Public view ↗</a></header>
+  <div class="trust-registry-grid">{% for b in bulletins %}<a href="{{ url_for('truth_detail', bulletin_id=b.id) }}" target="_blank"><span class="trust-verdict {{ verdict_tone(b.verdict) }}">{{ b.verdict }}</span><b>{{ b.title }}</b><small>{{ b.official_source or 'Authority review' }}{% if b.is_demo %} · DEMO{% endif %}</small></a>{% endfor %}</div>
+</section>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+async function runTrustSimulation(){
+  const btn=document.getElementById('trustSimButton'), out=document.getElementById('trustSimResult');
+  btn.disabled=true; btn.textContent='Running integrity engine…'; out.hidden=false; out.innerHTML='<small>Evaluating coordinated-copy signals…</small>';
+  try{
+    const res=await fetch('{{ url_for("api_admin_trust_simulate_coordination") }}',{method:'POST',headers:{'Accept':'application/json'}});
+    const data=await res.json();
+    if(!data.ok) throw new Error(data.error||'Simulation failed');
+    out.innerHTML=`<div class="trust-sim-score"><b>${data.score}</b><span>/100<br>${data.label}</span></div><div><strong>${data.scenario}</strong><p>${data.policy}</p><ul>${data.signals.map(x=>`<li>${escapeTrustSim(x)}</li>`).join('')}</ul></div>`;
+  }catch(err){out.innerHTML='<b>Simulation error:</b> '+escapeTrustSim(err.message||'Unknown error');}
+  finally{btn.disabled=false;btn.textContent='Run Again';}
+}
+function escapeTrustSim(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;}
+</script>
+{% endblock %}

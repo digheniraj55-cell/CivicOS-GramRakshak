@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Create Civic Account · CivicOS{% endblock %}
+{% block content %}
+<section class="auth-page civic-bg citizen-auth-page">
+  <div class="citizen-auth-grid">
+    <form class="auth-card citizen-auth-card" method="post">
+      <span class="section-label">Citizen Identity</span><h1>Create Civic Account</h1>
+      <p>Create one CivicOS identity. After registration, a 6-digit OTP will be sent to your email and must be verified before reporting civic issues.</p>
+      <input name="full_name" autocomplete="name" placeholder="Full name" required>
+      <input name="email" type="email" autocomplete="email" placeholder="Email address" required>
+      <div class="auth-two"><input name="village" placeholder="Town / village" required><input name="ward" placeholder="Ward / area" required></div>
+      <input name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Password · minimum 8 characters" required>
+      <label class="captcha-field"><span>CAPTCHA · {{ captcha_question }}</span><input name="captcha" inputmode="numeric" autocomplete="off" placeholder="Answer" required></label>
+      <button class="btn primary" type="submit">Create Account & Send OTP</button>
+      <p class="auth-switch">Already registered? <a href="{{ url_for('citizen_login') }}">Sign in</a></p>
+    </form>
+    <aside class="citizen-auth-explain"><span>Why CivicOS verifies email</span><h2>Participation should be accountable too.</h2><p>Email OTP reduces throwaway accounts and connects the same verified citizen to complaint updates, resolution confirmation and worker feedback.</p><ul><li>OTP expires in 10 minutes</li><li>Maximum 5 incorrect attempts</li><li>One civic issue upvote per verified account</li><li>Evidence-based reopen requests</li></ul></aside>
+  </div>
+</section>
+{% endblock %}

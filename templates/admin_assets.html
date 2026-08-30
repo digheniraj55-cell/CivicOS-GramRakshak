@@ -1,0 +1,462 @@
+{% extends 'admin_base.html' %}
+{% block title %}{{ t('government_assets') }} · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="admin-page-heading">
+  <div>
+    <span>{{ t('asset_registry') }}</span>
+    <h1>{{ t('government_assets') }}</h1>
+    <p>{{ t('asset_overview') }}</p>
+  </div>
+  <div class="heading-actions">
+    <a class="admin-secondary-btn" href="{{ url_for('admin_asset_analytics') }}"><span>📊</span> Asset Analytics</a>
+    <a class="admin-secondary-btn" href="{{ url_for('admin_assets_export') }}"><span>↧</span> Export CSV</a>
+    <button class="admin-primary-btn" type="button" onclick="openModal('addAssetModal')"><span>＋</span> {{ t('add_new_asset') }}</button>
+  </div>
+</div>
+
+<!-- Executive Summary Cards -->
+<section class="asset-kpi-grid">
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#eff6ff; color:#2563eb;">🏛️</div>
+    <div class="kpi-info">
+      <small>Total Municipal Assets</small>
+      <b>{{ portfolio.total }}</b>
+      <span>Across {{ portfolio.by_ward|length }} administrative wards</span>
+    </div>
+  </div>
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#ecfdf5; color:#10b981;">✓</div>
+    <div class="kpi-info">
+      <small>Operational Assets</small>
+      <b>{{ portfolio.operational }}</b>
+      <span class="text-success">{{ (portfolio.operational / portfolio.total * 100)|round(1) if portfolio.total else 100 }}% {{ t('operational') }}</span>
+    </div>
+  </div>
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#fff7ed; color:#ea580c;">⚠️</div>
+    <div class="kpi-info">
+      <small>{{ t('needs_maintenance') }}</small>
+      <b>{{ portfolio.needs_repair + portfolio.critical }}</b>
+      <span class="text-warning">{{ portfolio.critical }} critical defective</span>
+    </div>
+  </div>
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#f5f3ff; color:#7c3aed;">₹</div>
+    <div class="kpi-info">
+      <small>{{ t('asset_valuation') }}</small>
+      <b>{{ format_inr(portfolio.total_valuation) }}</b>
+      <span>Municipal Asset Balance Sheet</span>
+    </div>
+  </div>
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#fef2f2; color:#ef4444;">⏱️</div>
+    <div class="kpi-info">
+      <small>Maintenance Overdue</small>
+      <b>{{ portfolio.maintenance_overdue }}</b>
+      <span class="text-danger">Action required</span>
+    </div>
+  </div>
+  <div class="asset-kpi-card">
+    <div class="kpi-icon-wrap" style="background:#f0fdf4; color:#16a34a;">🚜</div>
+    <div class="kpi-info">
+      <small>Active Machinery & Fleet</small>
+      <b>{{ portfolio.active_fleet_count }}</b>
+      <span>Vehicles & heavy equipment</span>
+    </div>
+  </div>
+</section>
+
+<!-- 17 Categories Filter Bar -->
+<section class="asset-category-strip">
+  <div class="asset-category-scroll">
+    <a href="{{ url_for('admin_assets', category='all', ward=ward_filter, status=status_filter, q=search_query) }}" class="cat-pill {{ 'active' if selected_category == 'all' else '' }}">
+      <span>🌐</span> <b>All Categories</b> <small>({{ portfolio.total }})</small>
+    </a>
+    {% for cat_id, cat in asset_categories.items() %}
+    <a href="{{ url_for('admin_assets', category=cat_id, ward=ward_filter, status=status_filter, q=search_query) }}" class="cat-pill {{ 'active' if selected_category == cat_id else '' }}">
+      <span>{{ cat.icon }}</span> <b>{{ cat.name if current_lang == 'en' else cat.name_mr }}</b>
+      <small>({{ portfolio.by_category[cat_id].count }})</small>
+      {% if portfolio.by_category[cat_id].critical > 0 %}
+        <span class="cat-critical-dot" title="{{ portfolio.by_category[cat_id].critical }} critical/degraded">!</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Interactive GIS Asset Map -->
+<section class="admin-card asset-map-section">
+  <header class="admin-card-head">
+    <div>
+      <h2>Interactive Municipal Asset GIS Map</h2>
+      <p>Real-time spatial distribution, condition status rings, and category filtering.</p>
+    </div>
+    <div class="map-controls-inline">
+      <button type="button" class="admin-secondary-btn small-btn" onclick="centerAssetMapOnMe()"><span>🎯</span> Locate Me</button>
+      <button type="button" class="admin-secondary-btn small-btn" onclick="resetAssetMapView()"><span>↻</span> Reset View</button>
+    </div>
+  </header>
+  <div class="asset-map-container" id="adminAssetMap" style="height: 380px; width: 100%; border-radius: 8px;"></div>
+  <div class="map-legend-strip">
+    <span><i class="legend-dot" style="background:#10b981;"></i> Good (80-100)</span>
+    <span><i class="legend-dot" style="background:#f59e0b;"></i> Fair (50-79)</span>
+    <span><i class="legend-dot" style="background:#ea580c;"></i> Degraded (25-49)</span>
+    <span><i class="legend-dot" style="background:#ef4444;"></i> Critical (&lt;25)</span>
+  </div>
+</section>
+
+<!-- Filters and Search -->
+<form class="admin-filter-bar" method="get" action="{{ url_for('admin_assets') }}">
+  <input type="hidden" name="category" value="{{ selected_category }}">
+  <input name="q" value="{{ search_query }}" placeholder="Search by UID, name, contractor, landmark, or serial #">
+  <select name="ward">
+    <option value="all">All Wards</option>
+    {% for w in wards_list %}
+      <option value="{{ w }}" {% if ward_filter == w %}selected{% endif %}>{{ w }}</option>
+    {% endfor %}
+  </select>
+  <select name="status">
+    <option value="all">All Statuses</option>
+    {% for st in asset_status_options %}
+      <option value="{{ st }}" {% if status_filter == st %}selected{% endif %}>{{ st }}</option>
+    {% endfor %}
+  </select>
+  <select name="department">
+    <option value="all">All Departments</option>
+    {% for d_key, d_label in departments.items() %}
+      <option value="{{ d_key }}" {% if dept_filter == d_key %}selected{% endif %}>{{ d_label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Apply Filters</button>
+  <a href="{{ url_for('admin_assets') }}" class="admin-secondary-btn">Reset</a>
+</form>
+
+<!-- Asset Registry Table -->
+<section class="admin-card">
+  <header class="admin-card-head">
+    <div>
+      <h2>Municipal Assets ({{ assets|length }} records)</h2>
+      <p>Click on any asset to view full specifications, maintenance logs, QR tag, and linked citizen complaints.</p>
+    </div>
+  </header>
+  <div class="simple-table-wrap">
+    <table class="admin-simple-table wide">
+      <thead>
+        <tr>
+          <th>{{ t('asset_uid') }}</th>
+          <th>{{ t('asset_name') }}</th>
+          <th>{{ t('asset_category') }}</th>
+          <th>Ward / Location</th>
+          <th>{{ t('condition_score') }}</th>
+          <th>Status</th>
+          <th>Preventive Maintenance</th>
+          <th>{{ t('asset_valuation') }}</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assets %}
+        {% set cond = condition_for(a.condition_score) %}
+        {% set maint = maintenance_due_for(a.next_maintenance_due) %}
+        {% set cat_info = asset_categories.get(a.category, {}) %}
+        <tr class="{{ 'danger-row' if a.status == 'Critical / Defective' or cond.score < 25 else '' }}">
+          <td>
+            <a href="{{ url_for('admin_asset_detail', aid=a.id) }}" class="uid-link">
+              <b>{{ a.asset_uid }}</b>
+            </a>
+          </td>
+          <td>
+            <b>{{ a.name }}</b>
+            <small class="text-muted">{{ a.village }} · Responsible: {{ worker_label(a.assigned_worker) if a.assigned_worker else department_label(a.department) }}</small>
+          </td>
+          <td>
+            <span class="category-tag">
+              {{ cat_info.icon or '🏛️' }} {{ cat_info.name if current_lang == 'en' else cat_info.name_mr }}
+            </span>
+          </td>
+          <td>
+            <b>{{ a.ward }}</b>
+            <small class="text-muted">{{ a.location }}</small>
+          </td>
+          <td>
+            <div class="condition-cell">
+              <div class="condition-meter">
+                <div class="condition-fill" style="width: {{ cond.score }}%; background: {{ cond.color }};"></div>
+              </div>
+              <b>{{ cond.score }}%</b>
+              <small style="color: {{ cond.color }};">{{ cond.label if current_lang == 'en' else cond.label_mr }}</small>
+            </div>
+          </td>
+          <td>
+            <span class="status-pill status-{{ a.status|lower|replace(' ', '-')|replace('/', '') }}">
+              {{ a.status }}
+            </span>
+          </td>
+          <td>
+            <span class="{{ maint.class }}"><b>{{ maint.status if current_lang == 'en' else maint.status_mr }}</b></span>
+            {% if a.next_maintenance_due %}
+              <small class="text-muted">Due: {{ a.next_maintenance_due }}</small>
+            {% endif %}
+          </td>
+          <td>
+            <b>{{ format_inr(a.estimated_value) }}</b>
+          </td>
+          <td>
+            <div class="table-actions-row">
+              <a class="table-action" href="{{ url_for('admin_asset_detail', aid=a.id) }}">Inspect →</a>
+              <a class="table-action secondary" href="{{ url_for('admin_asset_qr', asset_uid=a.asset_uid) }}" target="_blank" title="Print QR Tag">🏷️</a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <p>No government assets match the selected filters.</p>
+              <button class="admin-primary-btn" type="button" onclick="openModal('addAssetModal')">{{ t('add_new_asset') }}</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Add New Asset Modal -->
+<div class="civic-modal" id="addAssetModal" style="display:none;">
+  <div class="civic-modal-dialog modal-lg">
+    <div class="civic-modal-header">
+      <h3>🏛️ {{ t('add_new_asset') }}</h3>
+      <button type="button" class="close-modal-btn" onclick="closeModal('addAssetModal')">✕</button>
+    </div>
+    <form method="post" action="{{ url_for('admin_assets_new') }}" class="civic-modal-form" enctype="multipart/form-data">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>{{ t('asset_category') }} *</label>
+          <select name="category" id="newAssetCategorySelect" required onchange="updateSpecFields(this.value)">
+            {% for cat_id, cat in asset_categories.items() %}
+              <option value="{{ cat_id }}">{{ cat.icon }} {{ cat.name if current_lang == 'en' else cat.name_mr }} ({{ department_label(cat.department) }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ t('asset_name') }} *</label>
+          <input name="name" required placeholder="e.g. Main Water Feeder Line (Sector 4)">
+        </div>
+      </div>
+
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Ward / Administrative Zone *</label>
+          <input name="ward" required placeholder="e.g. Ward 1 · Central" list="wardSuggestions">
+          <datalist id="wardSuggestions">
+            {% for w in wards_list %}
+              <option value="{{ w }}">
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>Village / Town *</label>
+          <input name="village" required placeholder="e.g. Talegaon Central">
+        </div>
+        <div class="form-group">
+          <label>{{ t('condition_score') }}</label>
+          <input type="number" name="condition_score" value="100" min="0" max="100">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Exact Location / Landmark *</label>
+        <input name="location" required placeholder="e.g. Station Road Junction, Shivaji Chowk">
+      </div>
+
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Latitude (GPS)</label>
+          <input type="number" step="any" name="latitude" id="newAssetLat" placeholder="18.7324">
+        </div>
+        <div class="form-group">
+          <label>Longitude (GPS)</label>
+          <input type="number" step="any" name="longitude" id="newAssetLon" placeholder="73.6841">
+        </div>
+        <div class="form-group" style="display:flex; align-items:flex-end;">
+          <button type="button" class="admin-secondary-btn" style="width:100%; height:40px;" onclick="fetchCurrentLocationForAsset()">📍 Auto-detect GPS</button>
+        </div>
+      </div>
+
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>{{ t('asset_valuation') }} (₹ INR)</label>
+          <input type="number" name="estimated_value" placeholder="e.g. 500000">
+        </div>
+        <div class="form-group">
+          <label>Installation / Commission Date</label>
+          <input type="date" name="install_date">
+        </div>
+        <div class="form-group">
+          <label>Assigned Maintenance Team</label>
+          <select name="assigned_worker">
+            <option value="">-- Unassigned (Department Pool) --</option>
+            {% for w in workers %}
+              <option value="{{ w.id }}">{{ w.id }} · {{ w.name }} ({{ department_label(w.department) }})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Category Specific Specifications Container -->
+      <div class="specifications-box">
+        <h4>Category Technical Specifications</h4>
+        <div id="dynamicSpecsContainer" class="form-row-2">
+          <!-- Populated dynamically by updateSpecFields -->
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Operational Notes / Maintenance Directives</label>
+        <textarea name="notes" rows="2" placeholder="Enter warranty terms, contractor contact, or special operating notes..."></textarea>
+      </div>
+
+      <div class="civic-modal-footer">
+        <button type="button" class="admin-secondary-btn" onclick="closeModal('addAssetModal')">Cancel</button>
+        <button type="submit" class="admin-primary-btn">Save Asset to Registry</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+  const ASSET_SCHEMAS = {{ asset_categories|tojson }};
+  const ASSET_MARKERS = {{ map_markers|tojson }};
+  let assetMap = null;
+
+  function initAssetMap() {
+    const mapEl = document.getElementById('adminAssetMap');
+    if (!mapEl) return;
+
+    const defaultLat = {{ map_default_lat|default(18.7324) }};
+    const defaultLon = {{ map_default_lon|default(73.6841) }};
+
+    assetMap = L.map('adminAssetMap').setView([defaultLat, defaultLon], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(assetMap);
+
+    const bounds = [];
+
+    ASSET_MARKERS.forEach(m => {
+      if (m.lat && m.lon) {
+        bounds.push([m.lat, m.lon]);
+        
+        let pinColor = '#10b981';
+        if (m.condition < 25 || m.status === 'Critical / Defective') pinColor = '#ef4444';
+        else if (m.condition < 50) pinColor = '#ea580c';
+        else if (m.condition < 80) pinColor = '#f59e0b';
+
+        const customIcon = L.divIcon({
+          className: 'asset-map-pin',
+          html: `<div style="background:${pinColor}; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid #fff; font-size:16px;">${m.icon}</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const marker = L.marker([m.lat, m.lon], { icon: customIcon }).addTo(assetMap);
+        
+        const popupHtml = `
+          <div class="asset-map-popup">
+            <div style="font-size:11px; font-weight:700; color:#64748b;">${m.uid} · ${m.categoryLabel}</div>
+            <strong style="font-size:13px; display:block; margin:2px 0 4px;">${m.name}</strong>
+            <div style="font-size:12px; color:#475569; margin-bottom:6px;">📍 ${m.location}, ${m.ward}</div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:8px;">
+              <span>Condition: <b style="color:${pinColor};">${m.condition}%</b></span>
+              <span>Status: <b>${m.status}</b></span>
+            </div>
+            <a href="/admin/assets/${m.id}" style="display:block; text-align:center; padding:4px 8px; background:#2563eb; color:#fff; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold;">Inspect 360° Profile →</a>
+          </div>
+        `;
+        marker.bindPopup(popupHtml);
+      }
+    });
+
+    if (bounds.length > 0) {
+      assetMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+    }
+  }
+
+  function centerAssetMapOnMe() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        if (assetMap) {
+          assetMap.setView([lat, lon], 16);
+          L.circleMarker([lat, lon], { radius: 8, color: '#3b82f6', fillColor: '#60a5fa', fillOpacity: 0.8 }).addTo(assetMap).bindPopup('<b>Your Current Location</b>').openPopup();
+        }
+      });
+    }
+  }
+
+  function resetAssetMapView() {
+    if (assetMap && ASSET_MARKERS.length > 0) {
+      const bounds = ASSET_MARKERS.filter(m => m.lat && m.lon).map(m => [m.lat, m.lon]);
+      if (bounds.length > 0) assetMap.fitBounds(bounds, { padding: [30, 30] });
+    }
+  }
+
+  function updateSpecFields(catId) {
+    const container = document.getElementById('dynamicSpecsContainer');
+    if (!container || !ASSET_SCHEMAS[catId]) return;
+    const schema = ASSET_SCHEMAS[catId].spec_schema || [];
+    
+    let html = '';
+    schema.forEach(field => {
+      html += `<div class="form-group"><label>${field.label}</label>`;
+      if (field.type === 'select') {
+        html += `<select name="spec_${field.key}">`;
+        field.options.forEach(opt => {
+          html += `<option value="${opt}">${opt}</option>`;
+        });
+        html += `</select>`;
+      } else if (field.type === 'number') {
+        html += `<input type="number" step="${field.step || '1'}" name="spec_${field.key}" placeholder="${field.label}">`;
+      } else if (field.type === 'date') {
+        html += `<input type="date" name="spec_${field.key}">`;
+      } else {
+        html += `<input type="text" name="spec_${field.key}" placeholder="${field.label}">`;
+      }
+      html += `</div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  function fetchCurrentLocationForAsset() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        document.getElementById('newAssetLat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('newAssetLon').value = pos.coords.longitude.toFixed(6);
+      });
+    }
+  }
+
+  function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+  }
+
+  function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initAssetMap();
+    const select = document.getElementById('newAssetCategorySelect');
+    if (select) updateSpecFields(select.value);
+  });
+</script>
+{% endblock %}

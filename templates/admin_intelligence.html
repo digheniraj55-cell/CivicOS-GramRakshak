@@ -1,0 +1,127 @@
+{% extends 'admin_base.html' %}
+{% block title %}Civic Intelligence · CivicOS{% endblock %}
+{% block admin_content %}
+<section class="admin-page-heading intelligence-heading">
+  <div><span>CIVIC INTELLIGENCE & PREVENTION</span><h1>Understand what is failing — before the next complaint</h1><p>CivicOS connects complaint history, location, recurrence, impact, resource capacity and repair outcomes into explainable decision support.</p></div>
+  <div class="heading-actions"><a class="admin-primary-btn" href="{{ url_for('admin_optimizer') }}">Optimize Municipal Plan</a><a class="admin-outline-btn" href="{{ url_for('admin_sweeps') }}">Cross-Department Sweeps</a><a class="admin-outline-btn" href="{{ url_for('admin_intelligence_brief') }}">Decision Brief</a></div>
+</section>
+
+<section class="intelligence-kpi-grid">
+  <article class="intel-kpi danger"><small>Civic Debt</small><b>{{ intelligence.debt.score }}/100</b><span>{{ intelligence.debt.label }} backlog burden</span><em>{{ format_inr(intelligence.debt.estimated_liability) }} projected 7-day delay cost</em></article>
+  <article class="intel-kpi warning"><small>Highest 7-Day Risk</small><b>{{ intelligence.risks[0].risk if intelligence.risks else 0 }}%</b><span>{{ intelligence.risks[0].ward if intelligence.risks else 'No ward data' }}</span><em>Explainable prototype risk forecast</em></article>
+  <article class="intel-kpi purple"><small>Root-Cause Clusters</small><b>{{ intelligence.causal|length }}</b><span>Connected incident groups</span><em>Cross-category + spatial recurrence</em></article>
+  <article class="intel-kpi blue"><small>Silent-Zone Signals</small><b>{{ intelligence.blind|length }}</b><span>Low-reporting / higher-risk areas</span><em>Inspection recommendation, not automatic diagnosis</em></article>
+  <article class="intel-kpi green"><small>Reserve Guard</small><b>{{ intelligence.reserve|selectattr('state','equalto','Reserve only')|list|length + intelligence.reserve|selectattr('state','equalto','Protected')|list|length }}</b><span>Departments retaining reserve capacity</span><em>Never spend the last response resource</em></article>
+</section>
+
+<section class="intel-feature-grid two">
+  <article class="admin-card intelligence-card causal-card">
+    <header class="admin-card-head"><div><h2>🧠 Civic Memory + Causal Graph</h2><p>Connect repeated symptoms around the same place instead of treating every ticket as isolated.</p></div><span class="prototype-chip">Explainable MVP</span></header>
+    {% if intelligence.causal %}
+      {% set cluster = intelligence.causal[0] %}
+      <div class="cause-summary"><span>{{ cluster.confidence }}% confidence</span><h3>{{ cluster.root_cause }}</h3><p>{{ cluster.recommendation }}</p></div>
+      <div class="causal-flow">
+        {% for row in cluster.complaints[:5] %}<a href="{{ url_for('complaint_detail', cid=row.id) }}"><small>#{{ row.id }}</small><b>{{ row.title }}</b><span>{{ department_label(row.department) }}</span></a>{% if not loop.last %}<i>→</i>{% endif %}{% endfor %}
+      </div>
+      <div class="intel-mini-grid"><div><small>Connected incidents</small><b>{{ cluster.count }}</b></div><div><small>Departments</small><b>{{ cluster.departments|length }}</b></div><div><small>Active</small><b>{{ cluster.active }}</b></div></div>
+      <div class="memory-list">
+        {% for item in intelligence.memory[:4] %}<div><span><b>{{ item.label }}</b><small>{{ item.ward }} · {{ item.total }} historical incidents</small></span><strong>{{ item.recurrence }}/100 recurrence</strong></div>{% endfor %}
+      </div>
+    {% else %}<div class="empty-state">CivicOS needs at least two nearby/repeated complaint records before it can form a causal cluster.</div>{% endif %}
+  </article>
+
+  <article class="admin-card intelligence-card twin-card">
+    <header class="admin-card-head"><div><h2>🏙 Digital Twin Lite · What if we wait?</h2><p>Decision-oriented simulation of downstream consequences — not a decorative 3D city.</p></div></header>
+    {% if intelligence.debt.top %}{% set item=intelligence.debt.top[0] %}
+      <a class="twin-case-link" href="{{ url_for('complaint_detail', cid=item.row.id) }}"><small>Highest current civic debt</small><b>#{{ item.row.id }} · {{ item.row.title }}</b><span>{{ item.row.ward }} · {{ item.impact.label }} impact</span></a>
+      <div class="delay-compare">
+        <div><small>ACT NOW</small><b>{{ format_inr(item.delay.cost_now) }}</b><span>Danger {{ item.delay.danger_now }}/100</span></div>
+        <i>7 DAYS</i>
+        <div class="bad"><small>WAIT</small><b>{{ format_inr(item.delay.cost_future) }}</b><span>Danger {{ item.delay.danger_future }}/100</span></div>
+      </div>
+      <div class="cascade-chain">
+        {% set cas = cascade_for(item.row, 7) %}
+        {% for node in cas.chain %}<span>{{ node }}</span>{% if not loop.last %}<i>↓</i>{% endif %}{% endfor %}
+      </div>
+      <div class="twin-impact"><b>+{{ format_inr(item.delay.extra_cost) }}</b><span>estimated avoidable cost if delayed 7 days</span><strong>{{ cas.probability }}% prototype cascade risk</strong></div>
+    {% else %}<div class="empty-state">No unresolved complaint is available for simulation.</div>{% endif %}
+  </article>
+</section>
+
+<section class="intel-feature-grid three">
+  <article class="admin-card intelligence-card">
+    <header class="admin-card-head"><div><h2>👻 Civic Blind-Spot Radar</h2><p>Complaint density is not the same as problem density.</p></div></header>
+    <div class="blind-list">
+      {% for item in intelligence.blind[:5] %}<div><span><b>{{ item.ward }}</b><small>Reporting {{ item.reporting_signal }} · Expected stress {{ item.expected_stress }}</small></span><strong>{{ item.blind_score }}</strong><em>{{ item.confidence }}% conf.</em></div>{% else %}<div class="empty-state small">No strong silent-zone signal in the current dataset.</div>{% endfor %}
+    </div>
+    <p class="model-note">Blind-spot output recommends inspection; it does not declare a failure without field evidence.</p>
+  </article>
+
+  <article class="admin-card intelligence-card">
+    <header class="admin-card-head"><div><h2>🔮 Civic Risk Forecast</h2><p>7-day failure risk using recurrence, priority, emergencies and SLA stress.</p></div></header>
+    <div class="risk-bars">
+      {% for item in intelligence.risks[:6] %}<div><span><b>{{ item.ward }}</b><small>{{ item.reasons[0] }}</small></span><div><i style="width:{{ item.risk }}%"></i></div><strong>{{ item.risk }}%</strong></div>{% endfor %}
+    </div>
+  </article>
+
+  <article class="admin-card intelligence-card">
+    <header class="admin-card-head"><div><h2>🩺 Civic Health Index</h2><p>Measure infrastructure condition, not only ticket closure.</p></div></header>
+    <div class="health-list">
+      {% for item in intelligence.health[:6] %}<div><span><b>{{ item.ward }}</b><small>{{ item.active }} active · {{ item.escalated }} breached</small></span><strong class="{{ 'bad' if item.health < 55 else 'warn' if item.health < 75 else 'good' }}">{{ item.health }}/100 {{ item.trend }}</strong></div>{% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="admin-card intelligence-card equity-card">
+  <header class="admin-card-head"><div><h2>⚖ Civic Impact & Service Equity</h2><p>Find wards receiving weaker service outcomes using only operational records — no demographic profiling.</p></div><span class="prototype-chip">Service equity, not identity inference</span></header>
+  <div class="equity-grid">
+    {% for item in intelligence.equity[:6] %}
+      <article>
+        <div><span>{{ item.label }}</span><strong>{{ item.pressure }}/100</strong></div>
+        <h3>{{ item.ward }}</h3>
+        <p>{{ item.reasons|join(' · ') }}</p>
+        <div class="equity-meta"><span>{{ item.active }} active</span><span>{{ item.resolution_rate }}% resolved</span><span>{{ item.avg_open_age }}d avg open age</span></div>
+        <small>{{ item.recommendation }}</small>
+      </article>
+    {% else %}<div class="empty-state">More ward-level service history is needed for service-equity comparison.</div>{% endfor %}
+  </div>
+</section>
+
+<section class="intel-feature-grid two">
+  <article class="admin-card intelligence-card">
+    <header class="admin-card-head"><div><h2>♻ Chronic Failure & Civic Debt</h2><p>Detect the expensive cycle: resolve → recur → resolve again.</p></div></header>
+    <div class="chronic-list">
+      {% for item in intelligence.chronic[:5] %}<div><span><b>{{ item.label }}</b><small>{{ item.repeat_count }} repeated {{ item.dominant_category }} incidents · recurrence {{ item.recurrence }}/100</small></span><strong>{{ format_inr(item.estimated_repeat_spend) }}</strong><p>{{ item.recommendation }}</p></div>{% else %}<div class="empty-state">More repeat history is needed for chronic-failure detection.</div>{% endfor %}
+    </div>
+  </article>
+
+  <article class="admin-card intelligence-card">
+    <header class="admin-card-head"><div><h2>🏛 Complaint → Policy Intelligence</h2><p>Convert operational history into evidence-backed structural recommendations.</p></div></header>
+    <div class="policy-list">
+      {% for item in intelligence.policy %}<div><span>{{ item.confidence }}% confidence</span><h3>{{ item.title }}</h3><p>{{ item.finding }}</p><b>{{ item.recommendation }}</b></div>{% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="intel-feature-grid two">
+  <article class="admin-card intelligence-card">
+    <header class="admin-card-head"><div><h2>🚐 One Trip, Multiple Problems</h2><p>Batch nearby inspections without breaking the one-active-task-per-field-team rule.</p></div></header>
+    <div class="batch-list">
+      {% for batch in intelligence.batches[:5] %}<div><span><b>{{ department_label(batch.department) }} · {{ batch.ward }}</b><small>{{ batch.count }} nearby issues · ≈{{ batch.saved_km }} km travel saved</small></span><div>{% for row in batch.complaints %}<a href="{{ url_for('complaint_detail', cid=row.id) }}">#{{ row.id }}</a>{% endfor %}</div><p>{{ batch.note }}</p></div>{% else %}<div class="empty-state">No safe inspection batch is available in the current complaint geography.</div>{% endfor %}
+    </div>
+  </article>
+
+  <article class="admin-card intelligence-card">
+    <header class="admin-card-head"><div><h2>🛡 Reserve Capacity Guard</h2><p>“Never spend the last resource.” Keep emergency capacity available when possible.</p></div></header>
+    <div class="reserve-table">
+      {% for item in intelligence.reserve %}<div><b>{{ department_label(item.department) }}</b><span>{{ item.busy }} busy / {{ item.total }} total</span><strong class="{{ 'good' if item.available > item.protected else 'warn' if item.available == item.protected and item.protected else 'bad' }}">{{ item.available }} available · {{ item.state }}</strong></div>{% endfor %}
+    </div>
+    <div class="reserve-actions"><a href="{{ url_for('admin_sweeps') }}" class="admin-outline-btn">Plan coordinated sweep</a><form method="post" action="{{ url_for('toggle_disaster_mode') }}"><button class="admin-danger-btn" type="submit">{{ 'Disable Disaster Mode' if disaster_mode else 'Enable Disaster Mode' }}</button></form></div>
+  </article>
+</section>
+
+<section class="admin-card intelligence-footer-card">
+  <div><span class="prototype-chip">Municipal Intelligence Agent</span><h2>Algorithms calculate the evidence. AI may explain it — it does not invent the decision.</h2><p>New incident → Civic Memory → recurrence → root-cause clues → impact → risk → cascade → optimization → intervention → proof → memory.</p></div>
+  <a class="admin-primary-btn" href="{{ url_for('admin_optimizer') }}">Run Public Value Optimizer →</a>
+</section>
+{% endblock %}

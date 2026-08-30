@@ -1,0 +1,82 @@
+{% extends 'admin_base.html' %}
+{% block title %}Blackout Recovery · CivicOS{% endblock %}
+{% block admin_content %}
+<div class="recovery-hero">
+  <article class="recovery-hero-card">
+    <div class="recovery-kicker">Released Challenge · The Blackout</div>
+    <h1>Resilience Control Room</h1>
+    <p>CivicOS keeps a separate, continuously refreshed recovery snapshot. If the primary data store is wiped or corrupted mid-operation, the next database access validates it, restores the last known-good state, and resumes normal operations.</p>
+    <div class="recovery-actions">
+      <form method="post" action="{{ url_for('admin_recovery_simulate_blackout') }}" onsubmit="return confirm('Run the LIVE blackout simulation? CivicOS will intentionally corrupt its primary database, then automatically recover it from the independent snapshot.');">
+        <button class="recovery-btn danger" type="submit">⚡ Simulate Live Blackout</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_recovery_snapshot') }}"><button class="recovery-btn safe" type="submit">✓ Create Recovery Snapshot</button></form>
+      <span class="recovery-btn ghost">AUTO-SNAPSHOT: ON</span>
+    </div>
+  </article>
+  <article class="recovery-status-card">
+    <div class="recovery-status-head"><h2>Store Health</h2><span class="recovery-health {{ 'ok' if primary_ok else 'bad' }}"><i></i>{{ 'PRIMARY HEALTHY' if primary_ok else 'PRIMARY DEGRADED' }}</span></div>
+    <div class="recovery-metric"><span>Primary store</span><b>{{ '{:,.1f}'.format(primary_size/1024/1024) }} MB</b></div>
+    <div class="recovery-metric"><span>Recovery snapshot</span><b>{{ '{:,.1f}'.format(backup_size/1024/1024) }} MB</b></div>
+    <div class="recovery-metric"><span>Last good snapshot</span><b>{{ backup_time }}</b></div>
+    <div class="recovery-metric"><span>Backup integrity</span><b id="recoveryBackupIntegrity">{{ 'PASS' if backup_ok else 'FAIL' }}</b></div>
+    <div class="recovery-metric"><span>Live probe</span><b id="recoveryLiveProbe">CONNECTED</b></div>
+  </article>
+</div>
+
+<section class="recovery-flow">
+  <h2>What the system actually does</h2>
+  <div class="recovery-steps">
+    <div class="recovery-step"><span class="num">1</span><strong>Detect</strong><b>Integrity check</b><span>Every DB access validates the primary SQLite store.</span></div>
+    <div class="recovery-step"><span class="num">2</span><strong>Isolate</strong><b>Quarantine evidence</b><span>The damaged file is preserved as an incident artifact.</span></div>
+    <div class="recovery-step"><span class="num">3</span><strong>Restore</strong><b>Independent snapshot</b><span>The last known-good recovery DB replaces the bad primary.</span></div>
+    <div class="recovery-step"><span class="num">4</span><strong>Verify</strong><b>Integrity + records</b><span>SQLite integrity and key operational record counts are checked.</span></div>
+    <div class="recovery-step"><span class="num">5</span><strong>Resume</strong><b>Operations continue</b><span>Complaints, workers, finance and inventory can be used immediately.</span></div>
+  </div>
+  <div class="recovery-proof">
+    <div><b>{{ record_counts.complaints }}</b><span>Total complaint records protected</span></div>
+    <div><b>{{ record_counts.active_complaints }}</b><span>Active operations records</span></div>
+    <div><b>{{ record_counts.inventory }}</b><span>Inventory records protected</span></div>
+  </div>
+</section>
+
+<div class="recovery-grid">
+  <section class="recovery-evidence">
+    <h2>Recovery Event Ledger</h2>
+    <p class="recovery-note">This ledger is written after recovery and records detection, restoration time, integrity result and the preserved damaged artifact.</p>
+    <div style="overflow:auto"><table class="recovery-table"><thead><tr><th>Incident</th><th>Duration</th><th>Records</th><th>Integrity</th><th>Status</th></tr></thead><tbody>
+    {% for e in recovery_events %}
+      <tr><td><span class="recovery-code">{{ e.incident_id }}</span><br><small>{{ e.restored_at or '—' }}</small></td><td>{{ e.duration_ms or 0 }} ms</td><td>{{ e.records_before or 0 }}</td><td><span class="recovery-badge">{{ e.integrity_after or '—' }}</span></td><td><span class="recovery-badge">{{ e.status }}</span></td></tr>
+    {% else %}<tr><td colspan="5">No blackout event has been simulated yet. Run the red button above for the live judge demonstration.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+
+  <section class="recovery-evidence">
+    <h2>Judge Demo Script</h2>
+    <p class="recovery-note"><b>1.</b> Open Complaints or Procurement and show live records.<br><b>2.</b> Open <b>Blackout Recovery</b> and point out the independent snapshot + healthy integrity.<br><b>3.</b> Click <b>Simulate Live Blackout</b>. CivicOS intentionally corrupts the primary SQLite file.<br><b>4.</b> The very next DB access detects the failure, restores the snapshot and verifies the records.<br><b>5.</b> Return to Complaints / Procurement and perform another action. The system is live again.</p>
+    <div class="recovery-proof"><div><b>1</b><span>Primary store</span></div><div><b>1</b><span>Independent snapshot</span></div><div><b>0</b><span>Manual recovery steps</span></div></div>
+    <p class="recovery-note" style="margin-top:14px">This is intentionally a working resilience mechanism, not a static “recovery complete” animation. The demo really corrupts the primary file, invokes the same self-healing path used for accidental corruption, and logs the outcome.</p>
+  </section>
+</div>
+{% endblock %}
+
+{% block admin_scripts %}
+<script>
+(function(){
+  const primary=document.querySelector('.recovery-health');
+  const probe=document.getElementById('recoveryLiveProbe');
+  const integrity=document.getElementById('recoveryBackupIntegrity');
+  async function poll(){
+    try{
+      const r=await fetch('{{ url_for("api_admin_recovery_status") }}',{cache:'no-store'});
+      if(!r.ok) throw new Error('probe');
+      const d=await r.json();
+      if(primary){ primary.className='recovery-health '+(d.primary==='HEALTHY'?'ok':'bad'); primary.innerHTML='<i></i>'+d.primary; }
+      if(probe){ probe.textContent=d.primary==='HEALTHY'?'LIVE · OK':'RECOVERY NEEDED'; }
+      if(integrity){ integrity.textContent=d.recovery_snapshot==='READY'?'PASS':'FAIL'; }
+    }catch(e){ if(probe) probe.textContent='OFFLINE'; }
+  }
+  poll(); setInterval(poll,5000);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Verify Email · CivicOS{% endblock %}
+{% block content %}
+<section class="auth-page civic-bg citizen-auth-page">
+  <div class="citizen-auth-grid">
+    <form class="auth-card citizen-auth-card" method="post">
+      <span class="section-label">Email Verification</span>
+      <h1>Enter your 6-digit OTP</h1>
+      <p>We sent a verification code to <b>{{ citizen.email }}</b>. The code expires in 10 minutes.</p>
+      {% if demo_otp %}
+      <div style="margin:16px 0;padding:16px 18px;border:1px solid #f59e0b;background:#fffbeb;border-radius:12px;color:#78350f">
+        <b>Hackathon local fallback</b>
+        <p style="margin:6px 0 10px">Real email delivery is not available on this laptop right now. Use this temporary local code to continue the demo:</p>
+        <div style="font-size:1.7rem;letter-spacing:.32rem;font-weight:900">{{ demo_otp }}</div>
+        <small>This code is shown only on localhost and expires in 10 minutes. Configure Gmail SMTP for real citizen delivery.</small>
+      </div>
+      {% endif %}
+      <input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" required style="font-size:1.5rem;letter-spacing:.35rem;text-align:center;font-weight:800">
+      <button class="btn primary" type="submit">Verify Email</button>
+      <p class="auth-switch">Didn’t receive the code? Use the button below after 60 seconds.</p>
+    </form>
+    <aside class="citizen-auth-explain">
+      <span>Secure Civic Account</span><h2>Why this matters</h2>
+      <p>Once verified, the same email identity is used for complaint registration, status notifications, the admin-resolution feedback email and reopen requests.</p>
+      <form method="post" action="{{ url_for('citizen_resend_otp') }}"><button class="btn" type="submit">Resend OTP</button></form>
+      <a href="{{ url_for('citizen_logout') }}" class="sos-inline-link">Use a different account →</a>
+    </aside>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Worker Login · CivicOS{% endblock %}
+{% block content %}
+<main class="worker-login-shell civic-bg">
+  <section class="worker-login-layout">
+    <form class="worker-login-card" method="post" autocomplete="off">
+      <div class="worker-login-badge">FIELD WORKFORCE ACCESS</div>
+      <div class="worker-login-mark">W</div>
+      <h1>Worker Login</h1>
+      <p>Secure access for assigned CivicOS field teams. Your account opens only your own current task and work history.</p>
+
+      <label>
+        <span>Worker username</span>
+        <input name="username" placeholder="Example: wtr01" autocomplete="username" required autofocus>
+      </label>
+      <label>
+        <span>Password</span>
+        <input name="password" type="password" placeholder="Enter worker password" autocomplete="current-password" required>
+      </label>
+      {% if request.args.get('next') %}<input type="hidden" name="next" value="{{ request.args.get('next') }}">{% endif %}
+      <button class="btn primary worker-login-submit" type="submit">Open My Worker Portal</button>
+
+      <div class="worker-demo-note">
+        <b>Hackathon demo access</b>
+        <span>Usernames use the Worker ID without hyphens, e.g. <code>wtr01</code>, <code>ele01</code>, <code>rd01</code>.</span>
+        <span>Initial password: <code>worker123</code></span>
+      </div>
+    </form>
+
+    <aside class="worker-login-explain">
+      <span class="section-label">Role-isolated operations</span>
+      <h2>A focused dashboard for field execution.</h2>
+      <p>The worker experience is deliberately separate from the administrator Command Center. Workers can execute assigned work, but cannot inspect or control other teams.</p>
+      <div class="worker-login-feature-grid">
+        <div><b>01</b><span>Own task only</span><small>One authenticated worker account → one field queue.</small></div>
+        <div><b>02</b><span>Evidence-first completion</span><small>Upload after-work proof before requesting closure.</small></div>
+        <div><b>03</b><span>Authority QA</span><small>Workers cannot make the final resolution decision.</small></div>
+        <div><b>04</b><span>Performance benchmark</span><small>SLA, citizen ratings and proof quality are tracked.</small></div>
+      </div>
+      <a class="worker-login-sos" href="{{ url_for('sos') }}">Emergency? Open SOS immediately →</a>
+    </aside>
+  </section>
+</main>
+{% endblock %}

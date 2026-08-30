@@ -30,8 +30,17 @@
         <a class="{{ 'active' if admin_active == 'departments' else '' }}" href="{{ url_for('admin_departments') }}"><span>▣</span>Departments</a>
         <a class="{{ 'active' if admin_active == 'workers' else '' }}" href="{{ url_for('admin_workers') }}"><span>♙</span>Field Workers</a>
         <a class="{{ 'active' if admin_active == 'analytics' else '' }}" href="{{ url_for('admin_analytics') }}"><span>⌁</span>Analytics</a>
+        <a class="{{ 'active' if admin_active == 'intelligence' else '' }}" href="{{ url_for('admin_intelligence') }}"><span>✦</span>Civic Intelligence <b class="nav-new">NEW</b></a>
+        <a class="{{ 'active' if admin_active == 'trust' else '' }}" href="{{ url_for('admin_trust_center') }}"><span>◈</span>Trust & Verification {% if trust_pending %}<b class="nav-count">{{ trust_pending }}</b>{% else %}<b class="nav-new">LIVE</b>{% endif %}</a>
+        <a class="{{ 'active' if admin_active == 'assets' else '' }}" href="{{ url_for('admin_assets') }}"><span>🏛</span>Government Assets <b class="nav-new">NEW</b></a>
+        <a class="{{ 'active' if admin_active == 'contractors' else '' }}" href="{{ url_for('admin_contractors') }}"><span>🏗</span>Contractors <b class="nav-new">NEW</b></a>
+        <a class="{{ 'active' if admin_active == 'procurement' else '' }}" href="{{ url_for('admin_procurement') }}"><span>📦</span>Procurement & Inventory <b class="nav-new">NEW</b></a>
+        <a class="{{ 'active' if admin_active == 'finance' else '' }}" href="{{ url_for('admin_finance') }}"><span>₹</span>Finance <b class="nav-new">NEW</b></a>
+        <a class="{{ 'active' if admin_active == 'recovery' else '' }}" href="{{ url_for('admin_recovery') }}"><span>🛡</span>Blackout Recovery <b class="nav-new">LIVE</b></a>
         <a class="{{ 'active' if admin_active == 'sla' else '' }}" href="{{ url_for('admin_sla') }}"><span>◴</span>SLA & Escalations</a>
+        <a class="{{ 'active' if admin_active == 'verification' else '' }}" href="{{ url_for('admin_verification') }}"><span>✓</span>Verification Queue {% if verification_pending %}<b class="nav-count">{{ verification_pending }}</b>{% endif %}</a>
         <a class="{{ 'active' if admin_active == 'feedback' else '' }}" href="{{ url_for('admin_feedback') }}"><span>♡</span>Citizen Feedback</a>
+        <a class="{{ 'active' if admin_active == 'accountability' else '' }}" href="{{ url_for('admin_accountability') }}"><span>⚖</span>Accountability {% if accountability_pending %}<b class="nav-count">{{ accountability_pending }}</b>{% endif %}</a>
         <a class="{{ 'active' if admin_active == 'reports' else '' }}" href="{{ url_for('admin_reports') }}"><span>▤</span>Reports</a>
         <a class="{{ 'active' if admin_active == 'transparency' else '' }}" href="{{ url_for('admin_transparency') }}"><span>◇</span>Transparency</a>
         <a class="{{ 'active' if admin_active == 'settings' else '' }}" href="{{ url_for('admin_settings') }}"><span>⚙</span>Settings</a>
@@ -40,7 +49,7 @@
       <div class="admin-quick-card">
         <strong>Quick Actions</strong>
         <a class="quick-blue {{ 'active' if admin_active == 'announcements' else '' }}" href="{{ url_for('admin_announcements') }}">＋ Add Announcement</a>
-        <a class="quick-green {{ 'active' if admin_active == 'alerts' else '' }}" href="{{ url_for('admin_alerts') }}">▣ Send Alert / SMS</a>
+        <a class="quick-green {{ 'active' if admin_active == 'alerts' else '' }}" href="{{ url_for('admin_alerts') }}">▣ Send Citizen Alert</a>
         <a class="quick-purple" href="{{ url_for('admin_export') }}">↧ Export Report</a>
       </div>
 
@@ -60,11 +69,16 @@
         </form>
         <div class="admin-user-actions">
           <a class="admin-bell" href="{{ url_for('admin_sla') }}" title="Critical alerts">♧{% if stats and stats.escalated %}<b>{{ stats.escalated }}</b>{% endif %}</a>
+          <form method="post" action="{{ url_for('toggle_disaster_mode') }}" class="disaster-toggle-form">
+            <button class="admin-disaster-button {{ 'on' if disaster_mode else '' }}" type="submit" title="Toggle Disaster Operations Mode">{{ '⚠ Disaster Mode' if disaster_mode else 'Disaster Mode' }}</button>
+          </form>
           <button class="admin-theme-button" type="button" onclick="toggleAdminTheme()" title="Toggle appearance">☼</button>
           <div class="admin-user-chip"><span class="admin-avatar">A</span><span><b>{{ session.get('admin','Admin User') }}</b><small>Super Admin</small></span></div>
           <a class="admin-logout-link" href="{{ url_for('logout') }}">Logout</a>
         </div>
       </header>
+
+      {% if disaster_mode %}<div class="disaster-mode-banner"><b>⚠ Disaster Operations Mode</b><span>Emergency reserve capacity is protected. Non-critical automatic assignment is deliberately conservative.</span><a href="{{ url_for('admin_intelligence') }}">Open intelligence</a></div>{% endif %}
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

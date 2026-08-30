@@ -1,7 +1,49 @@
 {% extends 'admin_base.html' %}
 {% block title %}Emergency SOS · CivicOS{% endblock %}
 {% block admin_content %}
-<div class="admin-page-heading emergency-heading"><div><span>Emergency Operations</span><h1>Emergency SOS</h1><p>Emergency cases are isolated into a dedicated page for faster authority response.</p></div><a class="admin-danger-btn" href="{{ url_for('sos') }}" target="_blank">Open Citizen SOS ↗</a></div>
-<section class="admin-metric-grid three"><article class="admin-metric"><i class="red">☎</i><div><small>Total SOS</small><b>{{ emergency_rows|length }}</b><span>emergency reports</span></div></article><article class="admin-metric"><i class="orange">⌛</i><div><small>Active SOS</small><b>{{ emergency_rows|selectattr('status','ne','Resolved')|list|length }}</b><span>require response</span></div></article><article class="admin-metric"><i class="green">✓</i><div><small>Resolved SOS</small><b>{{ emergency_rows|selectattr('status','equalto','Resolved')|list|length }}</b><span>closed emergencies</span></div></article></section>
-<section class="admin-card"><header class="admin-card-head"><h2>Emergency Queue</h2></header><div class="case-list emergency-list">{% for row in emergency_rows %}<a href="{{ url_for('complaint_detail', cid=row.id) }}"><i class="danger">☎</i><span><b>#{{ row.id }} · {{ row.title }}</b><small>{{ row.address or row.location }} · {{ row.phone or 'No phone' }}</small></span><em>{{ row.status }}</em></a>{% else %}<div class="empty-state">No emergency reports yet.</div>{% endfor %}</div></section>
+<div class="admin-page-heading emergency-heading">
+  <div><span>Emergency Operations</span><h1>Emergency SOS</h1><p>Emergency cases are isolated into a dedicated page for faster authority response while CivicOS protects response capacity.</p></div>
+  <div class="emergency-heading-actions">
+    <form method="post" action="{{ url_for('toggle_disaster_mode') }}">
+      <button class="admin-danger-btn {% if disaster_mode %}active{% endif %}" type="submit">{% if disaster_mode %}Disable{% else %}Enable{% endif %} Disaster Mode</button>
+    </form>
+    <a class="admin-danger-btn ghost" href="{{ url_for('sos') }}" target="_blank">Open Citizen SOS ↗</a>
+  </div>
+</div>
+
+{% if disaster_mode %}
+<section class="disaster-operations-panel">
+  <div class="disaster-ops-icon">⚠</div>
+  <div>
+    <span>Disaster Operations Mode Active</span>
+    <h2>Protect emergency capacity before routine workload</h2>
+    <p>Non-critical automatic assignments become conservative, reserve teams are protected, while SOS and critical-priority cases can still consume protected capacity when required.</p>
+  </div>
+  <a href="{{ url_for('admin_intelligence') }}">Open Civic Intelligence →</a>
+</section>
+{% endif %}
+
+<section class="admin-metric-grid three">
+  <article class="admin-metric"><i class="red">☎</i><div><small>Total SOS</small><b>{{ emergency_rows|length }}</b><span>emergency reports</span></div></article>
+  <article class="admin-metric"><i class="orange">⌛</i><div><small>Active SOS</small><b>{{ emergency_rows|selectattr('status','ne','Resolved')|list|length }}</b><span>require response</span></div></article>
+  <article class="admin-metric"><i class="green">✓</i><div><small>Resolved SOS</small><b>{{ emergency_rows|selectattr('status','equalto','Resolved')|list|length }}</b><span>closed emergencies</span></div></article>
+</section>
+
+<section class="admin-card emergency-policy-card">
+  <header class="admin-card-head"><div><span>Response Policy</span><h2>Never spend the last resource</h2></div><span class="status-pill {% if reserve_guard_enabled %}good{% else %}warn{% endif %}">{{ 'Protected' if reserve_guard_enabled else 'Disabled' }}</span></header>
+  <div class="emergency-policy-grid">
+    <article><b>1 task / team</b><span>A field team cannot hold two unresolved tasks at the same time.</span></article>
+    <article><b>Reserve capacity</b><span>Routine auto-routing keeps the final response team free where the department has enough configured teams.</span></article>
+    <article><b>Critical override</b><span>Emergency and critical-priority cases can use reserve capacity. Authority can explicitly override routine reserve protection when justified.</span></article>
+  </div>
+</section>
+
+<section class="admin-card">
+  <header class="admin-card-head"><h2>Emergency Queue</h2></header>
+  <div class="case-list emergency-list">
+    {% for row in emergency_rows %}
+      <a href="{{ url_for('complaint_detail', cid=row.id) }}"><i class="danger">☎</i><span><b>#{{ row.id }} · {{ row.title }}</b><small>{{ row.address or row.location }} · {{ row.phone or 'No phone' }}</small></span><em>{{ row.status }}</em></a>
+    {% else %}<div class="empty-state">No emergency reports yet.</div>{% endfor %}
+  </div>
+</section>
 {% endblock %}

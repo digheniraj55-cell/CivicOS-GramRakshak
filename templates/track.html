@@ -46,6 +46,12 @@
         {% if comp.escalated and comp.status != 'Resolved' %}<span class="danger-badge">Escalated</span>{% endif %}
       </div>
 
+      {% if trust_assessment %}
+      <div class="track-trust-strip {{ 'quarantined' if trust_assessment.public_visibility == 'Quarantined' else 'normal' }}">
+        <span>◈</span><div><small>Civic Trust & Information Integrity</small><b>{{ trust_assessment.reviewer_status }}</b><p>{% if trust_assessment.public_visibility == 'Quarantined' %}Public amplification is temporarily paused while the authority reviews evidence. Complaint handling and the audit trail continue normally.{% else %}An automated integrity precheck is recorded. It is a triage signal, not a declaration that the complaint is true or false.{% endif %}</p></div><a href="{{ url_for('trust_center') }}">Trust Center →</a>
+      </div>
+      {% endif %}
+
       <div class="info-grid track-info-grid">
         <div><small>{{ t('assigned_worker') }}</small><b>{{ worker_label(comp.assigned_worker) }}</b></div>
         <div><small>{{ t('sla_deadline') }}</small><b>{{ display_time(comp.sla_deadline) }}</b></div>
@@ -78,7 +84,7 @@
       </div>
 
       <div class="track-actions-row">
-        <form method="post" action="/upvote/{{ comp.id }}"><button class="btn light" type="submit">▲ {{ t('upvotes') }} · {{ comp.upvotes }}</button></form>
+        {% if session.get('citizen_id') %}<form method="post" action="/upvote/{{ comp.id }}"><button class="btn light" type="submit">▲ Support once · {{ comp.upvotes }}</button></form>{% else %}<a class="btn light" href="{{ url_for('citizen_login',next=url_for('track',cid=comp.id)) }}">Sign in to support · {{ comp.upvotes }}</a>{% endif %}
         <a class="btn ghost-dark" href="/complaint/{{ comp.id }}">Open full case →</a>
       </div>
     </section>
@@ -110,18 +116,24 @@
     </aside>
   </div>
 
-  {% if comp.status == 'Resolved' %}
-  <section class="panel feedback-panel">
-    <div><span class="section-label">Citizen Verification</span><h2>Rate the resolution</h2><p>Your feedback becomes part of the public accountability loop.</p></div>
-    <form method="post" action="/feedback/{{ comp.id }}" class="feedback-form">
-      <input name="name" placeholder="Your name">
-      <select name="rating"><option value="5">5 · Excellent</option><option value="4">4 · Good</option><option value="3">3 · Okay</option><option value="2">2 · Poor</option><option value="1">1 · Very poor</option></select>
-      <input name="message" placeholder="What was your experience?">
-      <button class="btn primary">Submit Feedback</button>
-    </form>
-  </section>
+  {% if comp.status == 'Awaiting Admin Verification' %}
+  <section class="resolution-proof-strip awaiting-admin-strip"><div><span class="section-label">Worker Completion Submitted</span><h2>Authority verification pending</h2><p>The field team uploaded completion proof, but CivicOS has not closed the case. An admin must review the evidence before the citizen receives the final verification email.</p></div><div class="proof-score-ring"><b>{{ comp.verification_score or 0 }}</b><span>/100</span></div><span class="verified-citizen-chip">QA Pending</span></section>
   {% endif %}
 
+  {% if comp.status == 'Resolved' %}
+  <section class="resolution-proof-strip">
+    <div><span class="section-label">Authority-Approved Completion</span><h2>{{ comp.verification_status or 'Pending citizen verification' }}</h2><p>Authority proof review is complete. The reporting citizen gets a secure email link for satisfaction, worker rating, written feedback or an evidence-backed reopen request.</p></div>
+    <div class="proof-score-ring"><b>{{ comp.verification_score or 0 }}</b><span>/100</span></div>
+    {% if comp.citizen_resolution == 'Satisfied' %}<span class="verified-citizen-chip">✓ Reporting citizen satisfied</span>{% elif comp.citizen_resolution == 'Reopen Requested' %}<span class="verified-citizen-chip reopen-chip">↺ Reopen review pending</span>{% elif comp.citizen_resolution == 'Reopened' %}<span class="verified-citizen-chip reopen-chip">↺ Reopened</span>{% elif comp.citizen_resolution == 'Reopen Rejected' %}<span class="verified-citizen-chip">Reopen reviewed</span>{% else %}<span class="verified-citizen-chip">Citizen verification pending</span>{% endif %}
+  </section>
+  <section class="panel feedback-panel">
+    <div><span class="section-label">Citizen Accountability Loop</span><h2>Verify once — no duplicate confirmations</h2><p>The reporting citizen uses the secure email link. Other authenticated citizens may submit one community confirmation from this case page.</p></div>
+    <div class="track-actions-row">
+      {% if session.get('citizen_id') and comp.citizen_user_id == session.get('citizen_id') and (comp.citizen_resolution or 'Pending') == 'Pending' %}<form method="post" action="{{ url_for('resend_resolution_email',cid=comp.id) }}"><button class="btn primary">✉ Send / resend my secure verification email</button></form>{% endif %}
+      {% if session.get('citizen_id') %}<form method="post" action="{{ url_for('verify_resolution',cid=comp.id) }}"><button class="btn light">✓ Community confirm once</button></form>{% else %}<a class="btn light" href="{{ url_for('citizen_login',next=url_for('track',cid=comp.id)) }}">Sign in to community-verify</a>{% endif %}
+    </div>
+  </section>
+  {% endif %}
   {% elif request.args.get('cid') %}
   <section class="empty-state-card"><span>⌕</span><h2>{{ t('complaint_not_found') }}</h2><p>Check the number, or recover your complaint using the name and phone number you used when reporting.</p><a class="btn primary" href="/find-complaint">{{ t('find_complaint') }}</a></section>
   {% else %}

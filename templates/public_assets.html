@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}Public Amenities & Government Assets Directory · CivicOS{% endblock %}
+{% block content %}
+<main class="page-shell">
+  <div class="page-heading-block">
+    <span class="pill-badge">Civic Transparency & Amenities</span>
+    <h1>🏛️ Public Amenities & Assets Directory</h1>
+    <p>Discover public toilets, primary health centres, municipal schools, water stations, parks, bus stops, and CCTV safety points in your neighborhood.</p>
+  </div>
+
+  <!-- Quick Geolocation Discovery Bar -->
+  <div class="public-amenities-bar">
+    <div class="amenity-search-wrap">
+      <input type="text" id="publicAssetSearch" placeholder="Search by amenity name, ward, village or landmark..." onkeyup="filterPublicAmenities()">
+    </div>
+    <div class="amenity-actions">
+      <button class="primary-btn" type="button" onclick="locateNearbyAmenities()">📍 Find Amenities Near Me</button>
+    </div>
+  </div>
+
+  <!-- Amenity Category Pills -->
+  <div class="public-category-pills" id="publicCatFilters">
+    <button class="cat-chip active" onclick="setPublicCategory('all', this)">🌐 All Amenities</button>
+    <button class="cat-chip" onclick="setPublicCategory('public_toilets', this)">🚻 Public Toilets</button>
+    <button class="cat-chip" onclick="setPublicCategory('hospitals_phcs', this)">🏥 Hospitals & PHCs</button>
+    <button class="cat-chip" onclick="setPublicCategory('schools', this)">🏫 Schools</button>
+    <button class="cat-chip" onclick="setPublicCategory('parks', this)">🌳 Parks & Gardens</button>
+    <button class="cat-chip" onclick="setPublicCategory('bus_stops', this)">🚏 Bus Stops</button>
+    <button class="cat-chip" onclick="setPublicCategory('water_tanks', this)">💧 Water Reservoirs</button>
+    <button class="cat-chip" onclick="setPublicCategory('borewells', this)">🛢️ Borewells & Pumps</button>
+    <button class="cat-chip" onclick="setPublicCategory('cctv_cameras', this)">📹 CCTV Zones</button>
+  </div>
+
+  <!-- Interactive Map Section -->
+  <div class="card map-card" style="margin-bottom: 24px; padding: 12px;">
+    <div id="publicAmenitiesMap" style="height: 360px; width: 100%; border-radius: 8px;"></div>
+  </div>
+
+  <!-- Amenity Grid -->
+  <div class="amenity-cards-grid" id="amenityGrid">
+    {% for a in public_amenities %}
+    {% set cat_info = asset_categories.get(a.category, {}) %}
+    {% set cond = condition_for(a.condition_score) %}
+    <div class="amenity-card" data-category="{{ a.category }}" data-ward="{{ a.ward|lower }}" data-name="{{ a.name|lower }}" data-location="{{ a.location|lower }}" data-lat="{{ a.latitude }}" data-lon="{{ a.longitude }}">
+      <div class="amenity-card-header">
+        <span class="amenity-icon">{{ cat_info.icon or '🏛️' }}</span>
+        <div>
+          <span class="amenity-category-name">{{ cat_info.name if current_lang == 'en' else cat_info.name_mr }}</span>
+          <h3 class="amenity-title">{{ a.name }}</h3>
+        </div>
+      </div>
+
+      <div class="amenity-body">
+        <div class="amenity-detail-row">
+          <span>📍 Location:</span>
+          <b>{{ a.location }}, {{ a.ward }}</b>
+        </div>
+        <div class="amenity-detail-row">
+          <span>Status:</span>
+          <span class="status-pill status-{{ a.status|lower|replace(' ', '-')|replace('/', '') }}">{{ a.status }}</span>
+        </div>
+        <div class="amenity-detail-row">
+          <span>Facility Condition:</span>
+          <b style="color: {{ cond.color }};">{{ cond.score }}% ({{ cond.label if current_lang == 'en' else cond.label_mr }})</b>
+        </div>
+        {% if a.specifications %}
+          {% set specs_dict = a.specifications|from_json if a.specifications is string else a.specifications %}
+          {% if specs_dict.running_water %}
+            <div class="amenity-detail-row"><span>Running Water:</span> <b>{{ specs_dict.running_water }}</b></div>
+          {% endif %}
+          {% if specs_dict.bed_capacity %}
+            <div class="amenity-detail-row"><span>Bed Capacity:</span> <b>{{ specs_dict.bed_capacity }} Beds</b></div>
+          {% endif %}
+          {% if specs_dict.doctor_in_charge %}
+            <div class="amenity-detail-row"><span>Doctor In-Charge:</span> <b>{{ specs_dict.doctor_in_charge }}</b></div>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <div class="amenity-footer">
+        <a href="{{ url_for('public_asset_view', asset_uid=a.asset_uid) }}" class="secondary-btn small-btn">Official Verification QR →</a>
+        <a href="{{ url_for('report', asset_uid=a.asset_uid) }}" class="primary-btn small-btn" style="background:#dc2626;">🚨 Report Issue</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const AMENITY_DATA = {{ public_amenities_json|safe }};
+  let pMap = null;
+  let markersLayer = null;
+
+  function initPublicMap() {
+    pMap = L.map('publicAmenitiesMap').setView([18.7324, 73.6841], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(pMap);
+
+    markersLayer = L.layerGroup().addTo(pMap);
+    renderMapMarkers('all');
+  }
+
+  function renderMapMarkers(catFilter) {
+    if (!markersLayer) return;
+    markersLayer.clearLayers();
+    const bounds = [];
+
+    AMENITY_DATA.forEach(a => {
+      if (catFilter !== 'all' && a.category !== catFilter) return;
+      if (a.latitude && a.longitude) {
+        bounds.push([a.latitude, a.longitude]);
+        const customIcon = L.divIcon({
+          className: 'public-map-pin',
+          html: `<div style="background:#2563eb; color:#fff; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid #fff; font-size:16px;">${a.icon}</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const marker = L.marker([a.latitude, a.longitude], { icon: customIcon }).addTo(markersLayer);
+        marker.bindPopup(`
+          <div style="font-family:system-ui,sans-serif;">
+            <div style="font-size:11px; font-weight:bold; color:#64748b;">${a.categoryLabel}</div>
+            <b style="font-size:13px; display:block; margin:2px 0 4px;">${a.name}</b>
+            <div style="font-size:12px; color:#475569; margin-bottom:8px;">📍 ${a.location}, ${a.ward}</div>
+            <a href="/report?asset_uid=${a.asset_uid}" style="display:block; text-align:center; padding:4px 8px; background:#dc2626; color:#fff; border-radius:4px; text-decoration:none; font-size:11px; font-weight:bold;">🚨 Report Issue with Facility</a>
+          </div>
+        `);
+      }
+    });
+
+    if (bounds.length > 0) pMap.fitBounds(bounds, { padding: [30, 30] });
+  }
+
+  function setPublicCategory(cat, el) {
+    document.querySelectorAll('#publicCatFilters .cat-chip').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    
+    // Filter cards
+    document.querySelectorAll('.amenity-card').forEach(card => {
+      if (cat === 'all' || card.dataset.category === cat) {
+        card.style.display = 'flex';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    // Update map
+    renderMapMarkers(cat);
+  }
+
+  function filterPublicAmenities() {
+    const q = document.getElementById('publicAssetSearch').value.toLowerCase();
+    document.querySelectorAll('.amenity-card').forEach(card => {
+      const text = (card.dataset.name + ' ' + card.dataset.ward + ' ' + card.dataset.location).toLowerCase();
+      card.style.display = text.includes(q) ? 'flex' : 'none';
+    });
+  }
+
+  function locateNearbyAmenities() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        if (pMap) {
+          pMap.setView([lat, lon], 16);
+          L.circleMarker([lat, lon], { radius: 9, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.8 }).addTo(pMap).bindPopup('<b>You are here</b>').openPopup();
+        }
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initPublicMap);
+</script>
+{% endblock %}
